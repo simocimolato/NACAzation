@@ -65,10 +65,16 @@ yu = yc + yt*np.cos(theta)
 xl = x + yt*np.sin(theta)
 yl = yc - yt*np.cos(theta)
 
-# Plot
+"""
 fig, ax = plt.subplots()
 ax.plot(xl,yl)
 ax.plot(xu,yu)
 ax.set_ylim([-0.5,0.5])
+"""
+
+# Combine
+xfoil = np.concatenate((xl,xu))
+yfoil = np.concatenate((yl,yu))
+
 
     
