@@ -3,7 +3,7 @@
 """
 Created on Sun Sep 17 19:05:31 2023
 
-@author: simonecimolato
+@author: simonecimolato, tmreilly, nsideman
 
 NACAZATION
 
