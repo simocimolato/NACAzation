@@ -3,7 +3,7 @@
 """
 ASTE 404 Project
 
-This script prompts user for NACA airfoil characteristics and plots the 
+This script prompts user for NACA airfoil characteristics and plots the
 resulting airfoil.
 """
 
@@ -25,16 +25,16 @@ def generate_foil():
     numPoints = int(input("\n Enter Number of Points, 20 to 200: "))
 
     # Evenly spaced array of numPoints elements from 0 to pi
-    # Using cosine spacing to concentrate extra elements near 0 and 1 
+    # Using cosine spacing to concentrate extra elements near 0 and 1
     beta = np.linspace(0, math.pi, num=numPoints, endpoint=True)
     x = (1-np.cos(beta)) / 2
 
     # Camber equations
     if P != 0:
-        yc_front = (M/P**2) * ( 2*P*x[x<P] - np.power(x[x<P],2) )
+        yc_front = (M/P**2) * (2*P*x[x<P] - np.power(x[x<P],2) )
     else:
         yc_front = np.array([])
-    yc_back = (M/(1-P)**2) * ( 1 - 2*P + 2*P*x[x>=P] - np.power(x[x>=P],2) )
+    yc_back = (M/(1-P)**2) * (1 - 2*P + 2*P*x[x>=P] - np.power(x[x>=P],2) )
     yc = np.concatenate((yc_front, yc_back))
 
     # Gradient equations
@@ -55,7 +55,7 @@ def generate_foil():
     yt = (T/0.2) * ( a0*np.power(x,0.5) + a1*x + a2*np.power(x,2) \
                     + a3*np.power(x,3) + a4*np.power(x,4) )
 
-    # Calculate envelope positions perpendicular to camber line  
+    # Calculate envelope positions perpendicular to camber line
     theta = np.arctan(dycdx)
 
     # Upper line
@@ -66,18 +66,14 @@ def generate_foil():
     xl = x + yt*np.sin(theta)
     yl = yc - yt*np.cos(theta)
 
-    """
     fig, ax = plt.subplots()
     ax.plot(xl,yl)
     ax.plot(xu,yu)
     ax.set_ylim([-0.5,0.5])
-    """
+
 
     # Combine
     xfoil = np.concatenate((xl,xu))
     yfoil = np.concatenate((yl,yu))
-    
+
     return [xfoil,yfoil]
-
-
-    
