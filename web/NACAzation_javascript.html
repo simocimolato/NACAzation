@@ -15,6 +15,15 @@ Simone Cimolato, Thomas Reilly
 				font-family: Calibri; 
 				font-size: 15px;
 			}	
+
+			#CX {
+				font-size: 26px; /* Adjust the font size as needed */
+				color: #333; /* Set the text color */
+				font-family: 'Arial', sans-serif; /* Set the font family */
+				margin-top: 10px; /* Add some top margin for spacing */
+				margin-right: 60px; /* Add some top margin for spacing */
+				float: right;
+			}
 		</style>
 	</head>
 	
@@ -50,12 +59,12 @@ Simone Cimolato, Thomas Reilly
 
 		var canvas = document.getElementById("myCanvas");
 		var c = canvas.getContext("2d");	
-		canvas.width = window.innerWidth * 0.98;
+		canvas.width = window.innerWidth * 0.8;
 		canvas.height = window.innerHeight * 0.9;
 
 		canvas.focus();
 
-		var simHeight = 1;	
+		var simHeight = 1.01;	
 		var cScale = canvas.height / simHeight;
 		var simWidth = canvas.width / cScale;
 
@@ -133,10 +142,10 @@ Simone Cimolato, Thomas Reilly
 					}
 				}
 				// CD & CL calculation and printing
-				var cx = 2 * this.force / (this.density * scene.inVel * scene.inVel * scene.obstacleRadius)
-				document.getElementById("CX").innerHTML = "CX: " + cx;
+				var cx = 2 * this.force / (this.density * scene.inVel * scene.inVel * scene.obstacleRadius);
+				document.getElementById("CX").innerHTML = "CX: " + cx.toFixed(4);
 			}
-
+			
 			extrapolate() {
 				var n = this.numY;
 				for (var i = 0; i < this.numX; i++) {
