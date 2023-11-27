@@ -20,540 +20,544 @@ Simone Cimolato, Thomas Reilly
 	
 <body>
 	<canvas id="myCanvas" style="border:2px solid"></canvas>
-<script>
-	/*
-	Assumptions: 
-		- incompressible fluid
-		- inviscid fluid
+	<div id = "CX">
+	</div>
+	<script>
+		/*
+		Assumptions: 
+			- incompressible fluid
+			- inviscid fluid
 
-	Features:
-		- staggered grid (velcity field values u and v stored on grid edges)
-		- 2 steps:
-			1 applying incompressibility (projection)
-				- setting fluid divergence from each cell at 0:
-					- computing divergence d at each cell (in general not always = 0)
-					- carefully adding/subtracting d/4 from each velocity at each edge so that the new divergence will be 0
-					- velocities on walls/obstacles are set to be 0, the divergence is divided by the number of the remaining "free" velocities and subracted/added to them
-				- computing pressure in each cell using overrelaxation
-				- computing aerodynamic force by integrating pressure of the obstacle's surface, computing CL and CD
-			1 move the velocity field and density (semi-lagrangian advection)
+		Features:
+			- staggered grid (velcity field values u and v stored on grid edges)
+			- 2 steps:
+				1 applying incompressibility (projection)
+					- setting fluid divergence from each cell at 0:
+						- computing divergence d at each cell (in general not always = 0)
+						- carefully adding/subtracting d/4 from each velocity at each edge so that the new divergence will be 0
+						- velocities on walls/obstacles are set to be 0, the divergence is divided by the number of the remaining "free" velocities and subracted/added to them
+					- computing pressure in each cell using overrelaxation
+					- computing aerodynamic force by integrating pressure of the obstacle's surface, computing CL and CD
+				1 move the velocity field and density (semi-lagrangian advection)
 
-	TODO:
-		- implement airfoils
-		- plott speed, pressure, curl
-		- input interface for airfoil generation
-		- printing on screen of drag/lift and CD/CL
-		- grouping input variables and in general make everything prettier
-	*/
+		TODO:
+			- implement airfoils
+			- plott speed, pressure, curl
+			- input interface for airfoil generation
+			- printing on screen of drag/lift and CD/CL
+			- grouping input variables and in general make everything prettier
+		*/
 
-	var canvas = document.getElementById("myCanvas");
-	var c = canvas.getContext("2d");	
-	canvas.width = window.innerWidth * 0.98;
-	canvas.height = window.innerHeight * 0.9;
+		var canvas = document.getElementById("myCanvas");
+		var c = canvas.getContext("2d");	
+		canvas.width = window.innerWidth * 0.98;
+		canvas.height = window.innerHeight * 0.9;
 
-	canvas.focus();
+		canvas.focus();
 
-	var simHeight = 1;	
-	var cScale = canvas.height / simHeight;
-	var simWidth = canvas.width / cScale;
+		var simHeight = 1;	
+		var cScale = canvas.height / simHeight;
+		var simWidth = canvas.width / cScale;
 
-	var U_FIELD = 0;
-	var V_FIELD = 1;
-	var S_FIELD = 2;
+		var U_FIELD = 0;
+		var V_FIELD = 1;
+		var S_FIELD = 2;
 
-	var cnt = 0; // counter
+		var cnt = 0; // counter
 
-	function cX(x) {
-		return x * cScale;
-	}
-
-	function cY(y) {
-		return canvas.height - y * cScale;
-	}
-
-	// ----------------- start of simulator ------------------------------
-	class Fluid {
-		constructor(density, numX, numY, h) {
-			this.density = density;
-			this.numX = numX + 3; 
-			this.numY = numY + 3;
-			this.numCells = this.numX * this.numY;
-			this.h = h;									// grid spacing
-			this.u = new Float32Array(this.numCells);	// horizontal velocity
-			this.v = new Float32Array(this.numCells);	// vertical velocity
-			this.newU = new Float32Array(this.numCells);
-			this.newV = new Float32Array(this.numCells);
-			this.p = new Float32Array(this.numCells);	// pressure
-			this.s = new Float32Array(this.numCells);	// keeps track of whether a cell is fluid (s_ij = 1) or wall/obstacle (s_ij = 0)
-			this.m = new Float32Array(this.numCells);	// density
-			this.newM = new Float32Array(this.numCells);
-			this.force = 0;								// force exerted on the body by the fluid
-			this.m.fill(0)
-			var num = numX * numY;
+		function cX(x) {
+			return x * cScale;
 		}
 
-		solveIncompressibility(numIters, dt) {
-			var n = this.numY;
-			var cp = this.density * this.h / dt;
+		function cY(y) {
+			return canvas.height - y * cScale;
+		}
 
-			for (var iter = 0; iter < numIters; iter++) {
-				this.force = 0;
+		// ----------------- start of simulator ------------------------------
+		class Fluid {
+			constructor(density, numX, numY, h) {
+				this.density = density;
+				this.numX = numX + 3; 
+				this.numY = numY + 3;
+				this.numCells = this.numX * this.numY;
+				this.h = h;									// grid spacing
+				this.u = new Float32Array(this.numCells);	// horizontal velocity
+				this.v = new Float32Array(this.numCells);	// vertical velocity
+				this.newU = new Float32Array(this.numCells);
+				this.newV = new Float32Array(this.numCells);
+				this.p = new Float32Array(this.numCells);	// pressure
+				this.s = new Float32Array(this.numCells);	// keeps track of whether a cell is fluid (s_ij = 1) or wall/obstacle (s_ij = 0)
+				this.m = new Float32Array(this.numCells);	// density
+				this.newM = new Float32Array(this.numCells);
+				this.force = 0;								// force exerted on the body by the fluid
+				this.m.fill(0)
+				var num = numX * numY;
+			}
+
+			solveIncompressibility(numIters, dt) {
+				var n = this.numY;
+				var cp = this.density * this.h / dt;
+
+				for (var iter = 0; iter < numIters; iter++) {
+					this.force = 0;
+					for (var i = 1; i < this.numX-1; i++) {
+						for (var j = 1; j < this.numY-1; j++) {
+							if (this.s[i*n + j] == 0.0)
+								continue;
+
+							var s = this.s[i*n + j];
+							var sx0 = this.s[(i-1)*n + j];
+							var sx1 = this.s[(i+1)*n + j];
+							var sy0 = this.s[i*n + j-1];
+							var sy1 = this.s[i*n + j+1];
+							var s = sx0 + sx1 + sy0 + sy1;
+							if (s == 0.0)
+								continue;
+
+							// divergence
+							var div = this.u[(i+1)*n + j] - this.u[i*n + j] + this.v[i*n + j+1] - this.v[i*n + j];
+
+							// computing pressure
+							var p = -div / s;
+							p *= scene.overRelaxation;
+							this.p[i*n + j] += cp * p; 
+							
+							if (s != 4 && i > 5 && i <this.numX-15 && j>5 && j <this.numY-15) // temporary condition
+								this.force += p;
+
+							this.u[i*n + j] -= sx0 * p;
+							this.u[(i+1)*n + j] += sx1 * p;
+							this.v[i*n + j] -= sy0 * p;
+							this.v[i*n + j+1] += sy1 * p;
+						}
+					}
+				}
+				// CD & CL calculation and printing
+				var cx = 2 * this.force / (this.density * scene.inVel * scene.inVel * scene.obstacleRadius)
+				document.getElementById("CX").innerHTML = "CX: " + cx;
+			}
+
+			extrapolate() {
+				var n = this.numY;
+				for (var i = 0; i < this.numX; i++) {
+					this.u[i*n] = this.u[i*n + 1];
+					this.u[i*n + this.numY-1] = this.u[i*n + this.numY-2]; 
+				}
+				for (var j = 0; j < this.numY; j++) {
+					this.v[j] = this.v[n + j];
+					this.v[(this.numX-1)*n + j] = this.v[(this.numX-2)*n + j] 
+				}
+			}
+
+			sampleField(x, y, field) {
+				var n = this.numY;
+				var h = this.h;
+				var h1 = 1 / h;
+				var h2 = 0.55 * h;
+
+				x = Math.max(Math.min(x, this.numX * h), h);
+				y = Math.max(Math.min(y, this.numY * h), h);
+
+				var dx = 0.0;
+				var dy = 0.0;
+
+				var f;
+
+				switch (field) {
+					case U_FIELD: f = this.u; 
+						dy = h2; 
+						break;
+					case V_FIELD: f = this.v; 
+						dx = h2; 
+						break;
+					case S_FIELD: f = this.m; 
+						dx = h2; 
+						dy = h2; 
+						break
+				}
+
+				var x0 = Math.min(Math.floor((x-dx)*h1), this.numX-1);
+				var tx = ((x-dx) - x0*h) * h1;
+				var x1 = Math.min(x0 + 1, this.numX-1);
+				
+				var y0 = Math.min(Math.floor((y-dy)*h1), this.numY-1);
+				var ty = ((y-dy) - y0*h) * h1;
+				var y1 = Math.min(y0 + 1, this.numY-1);
+
+				var sx = 1.0 - tx;
+				var sy = 1.0 - ty;
+
+				var val = sx*sy * f[x0*n + y0] +
+					tx*sy * f[x1*n + y0] +
+					tx*ty * f[x1*n + y1] +
+					sx*ty * f[x0*n + y1];
+				
+				return val;
+			}
+
+			avgU(i, j) {
+				var n = this.numY;
+				var u = (this.u[i*n + j-1] + this.u[i*n + j] + this.u[(i+1)*n + j-1] + this.u[(i+1)*n + j]) * 0.25;
+				return u;
+			}
+
+			avgV(i, j) {
+				var n = this.numY;
+				var v = (this.v[(i-1)*n + j] + this.v[i*n + j] + this.v[(i-1)*n + j+1] + this.v[i*n + j+1]) * 0.25;
+				return v;
+			}
+
+			advectVel(dt) {
+				this.newU.set(this.u);
+				this.newV.set(this.v);
+
+				var n = this.numY;
+				var h = this.h;
+				var h2 = 0.5 * h;
+
+				for (var i = 1; i < this.numX; i++) {
+					for (var j = 1; j < this.numY; j++) {
+
+						cnt++; // counter
+
+						// u component
+						if (this.s[i*n + j] != 0.0 && this.s[(i-1)*n + j] != 0.0 && j < this.numY - 1) {
+							var x = i*h;
+							var y = j*h + h2;
+							var u = this.u[i*n + j];
+							var v = this.avgV(i, j);
+
+							x = x - dt*u;
+							y = y - dt*v;
+							u = this.sampleField(x,y, U_FIELD);
+							this.newU[i*n + j] = u;
+						}
+
+						// v component
+						if (this.s[i*n + j] != 0.0 && this.s[i*n + j-1] != 0.0 && i < this.numX - 1) {
+							var x = i*h + h2;
+							var y = j*h;
+							var u = this.avgU(i, j);
+
+							var v = this.v[i*n + j];
+							x = x - dt*u;
+							y = y - dt*v;
+							v = this.sampleField(x,y, V_FIELD);
+							this.newV[i*n + j] = v;
+						}
+					}	 
+				}
+				this.u.set(this.newU);
+				this.v.set(this.newV);
+			}
+
+			// This function is specifically designed for advecting a scalar field representing smoke density within the fluid simulation.
+			advectSmoke(dt) {
+				this.newM.set(this.m);
+
+				var n = this.numY;
+				var h = this.h;
+				var h2 = 0.5 * h;
+
 				for (var i = 1; i < this.numX-1; i++) {
 					for (var j = 1; j < this.numY-1; j++) {
-						if (this.s[i*n + j] == 0.0)
-							continue;
 
-						var s = this.s[i*n + j];
-						var sx0 = this.s[(i-1)*n + j];
-						var sx1 = this.s[(i+1)*n + j];
-						var sy0 = this.s[i*n + j-1];
-						var sy1 = this.s[i*n + j+1];
-						var s = sx0 + sx1 + sy0 + sy1;
-						if (s == 0.0)
-							continue;
+						if (this.s[i*n + j] != 0.0) {
+							var u = (this.u[i*n + j] + this.u[(i+1)*n + j]) * 0.5;
+							var v = (this.v[i*n + j] + this.v[i*n + j+1]) * 0.5;
+							var x = i*h + h2 - dt*u;
+							var y = j*h + h2 - dt*v;
 
-						// divergence
-						var div = this.u[(i+1)*n + j] - this.u[i*n + j] + this.v[i*n + j+1] - this.v[i*n + j];
+							this.newM[i*n + j] = this.sampleField(x,y, S_FIELD);
+						}
+					}	 
+				}
+				this.m.set(this.newM);
+			}
 
-						// computing pressure
-						var p = -div / s;
-						p *= scene.overRelaxation;
-						this.p[i*n + j] += cp * p; 
-						
-						if (s != 4 && i > 5 && i <this.numX-15 && j>5 && j <this.numY-15) // temporary condition
-							this.force += p;
+			// ----------------- end of simulator ------------------------------
+			simulate(dt, numIters) {
+				this.p.fill(0.0);
+				this.solveIncompressibility(numIters, dt);
 
-						this.u[i*n + j] -= sx0 * p;
-						this.u[(i+1)*n + j] += sx1 * p;
-						this.v[i*n + j] -= sy0 * p;
-						this.v[i*n + j+1] += sy1 * p;
-					}
+				this.extrapolate();
+				this.advectVel(dt);
+				this.advectSmoke(dt);
+			}
+		}
+
+		var scene = {
+			paused: false,
+			showObstacle: false,
+			showPressure: false,
+			showSmoke: true,
+			fluid: null
+		};
+
+		function setupScene() {
+			scene.obstacleRadius = 0.10;
+			scene.setObstacleX = 0.5;
+			scene.setObstacleY = 0.4;
+			scene.overRelaxation = 1.9; // should be between 1 and 2
+			scene.dt = 1.0 / 60.0;
+			scene.numIters = 50;
+
+			var res = 100;
+			var domainHeight = 1;
+			var domainWidth = domainHeight / simHeight * simWidth;
+			var h = domainHeight / res;
+
+			var numX = Math.floor(domainWidth / h);
+			var numY = Math.floor(domainHeight / h);
+			density = 1;
+
+			f = scene.fluid = new Fluid(density, numX, numY, h);
+			var n = f.numY;
+
+			// vortex shedding
+			scene.inVel = 2.0;
+			for (var i = 0; i < f.numX; i++) {
+				for (var j = 0; j < f.numY; j++) {
+					var s = 1.0;	// fluid
+					if (i == 0 || j == 0 || j == f.numY-1)
+						s = 0.0;	// solid
+					f.s[i*n + j] = s
+					f.u[i*n + j] = scene.inVel;
 				}
 			}
-			console.log((2 * this.force)/((2 * 0.10 * 4))) // temporary CD printing
+
+			// initializing the flow
+			for (var j = 0; j < f.numY; j++)
+				f.m[j] = 0;
+
+			setObstacle(scene.setObstacleX, scene.setObstacleY, true)
+			scene.showPressure = false;
+			scene.showSmoke = true;
 		}
 
-		extrapolate() {
-			var n = this.numY;
-			for (var i = 0; i < this.numX; i++) {
-				this.u[i*n] = this.u[i*n + 1];
-				this.u[i*n + this.numY-1] = this.u[i*n + this.numY-2]; 
-			}
-			for (var j = 0; j < this.numY; j++) {
-				this.v[j] = this.v[n + j];
-				this.v[(this.numX-1)*n + j] = this.v[(this.numX-2)*n + j] 
-			}
+		// draw -------------------------------------------------------
+
+		// inputs are values from 0 to 1 of r g and b and it returns floored 0 - 255 values
+		function setColor(r,g,b) {
+			c.fillStyle = `rgb(
+				${Math.floor(255*r)},
+				${Math.floor(255*g)},
+				${Math.floor(255*b)})`
+
+			c.strokeStyle = `rgb(
+				${Math.floor(255*r)},
+				${Math.floor(255*g)},
+				${Math.floor(255*b)})`
 		}
 
-		sampleField(x, y, field) {
-			var n = this.numY;
-			var h = this.h;
-			var h1 = 1 / h;
-			var h2 = 0.55 * h;
+		function getSciColor(val, minVal, maxVal) {
+			val = Math.min(Math.max(val, minVal), maxVal- 0.0001);
+			var d = maxVal - minVal;
+			if (d == 0.0) {
+				val = 0.5;
+			} else {
+				val = (val - minVal) / d;
+			}
+			var m = 0.25;
+			var num = Math.floor(val / m);
+			var s = (val - num * m) / m;
+			var r, g, b;
 
-			x = Math.max(Math.min(x, this.numX * h), h);
-			y = Math.max(Math.min(y, this.numY * h), h);
-
-			var dx = 0.0;
-			var dy = 0.0;
-
-			var f;
-
-			switch (field) {
-				case U_FIELD: f = this.u; 
-					dy = h2; 
+			switch (num) {
+				case 0: 
+					r = 0.0; 
+					g = s; 
+					b = 1.0; 
 					break;
-				case V_FIELD: f = this.v; 
-					dx = h2; 
+				case 1: 
+					r = 0.0; 
+					g = 1.0; 
+					b = 1.0-s; 
 					break;
-				case S_FIELD: f = this.m; 
-					dx = h2; 
-					dy = h2; 
-					break
+				case 2: 
+					r = s; 
+					g = 1.0; 
+					b = 0.0; 
+					break;
+				case 3: 
+					r = 1.0; 
+					g = 1.0 - s; 
+					b = 0.0; 
+					break;
+			}
+			return[255*r,255*g,255*b, 255]
+		}
+
+		function draw() {
+			c.clearRect(0, 0, canvas.width, canvas.height);
+			f = scene.fluid;
+			n = f.numY;
+			var h = f.h;
+
+			minP = f.p[0];
+			maxP = f.p[0];
+
+			for (var i = 0; i < f.numCells; i++) {
+				minP = Math.min(minP, f.p[i]);
+				maxP = Math.max(maxP, f.p[i]);
 			}
 
-			var x0 = Math.min(Math.floor((x-dx)*h1), this.numX-1);
-			var tx = ((x-dx) - x0*h) * h1;
-			var x1 = Math.min(x0 + 1, this.numX-1);
-			
-			var y0 = Math.min(Math.floor((y-dy)*h1), this.numY-1);
-			var ty = ((y-dy) - y0*h) * h1;
-			var y1 = Math.min(y0 + 1, this.numY-1);
+			id = c.getImageData(0,0, canvas.width, canvas.height)
 
-			var sx = 1.0 - tx;
-			var sy = 1.0 - ty;
+			var color = [255, 255, 255, 255]
 
-			var val = sx*sy * f[x0*n + y0] +
-				tx*sy * f[x1*n + y0] +
-				tx*ty * f[x1*n + y1] +
-				sx*ty * f[x0*n + y1];
-			
-			return val;
-		}
+			for (var i = 0; i < f.numX; i++) {
+				for (var j = 0; j < f.numY; j++) {
 
-		avgU(i, j) {
-			var n = this.numY;
-			var u = (this.u[i*n + j-1] + this.u[i*n + j] + this.u[(i+1)*n + j-1] + this.u[(i+1)*n + j]) * 0.25;
-			return u;
-		}
-
-		avgV(i, j) {
-			var n = this.numY;
-			var v = (this.v[(i-1)*n + j] + this.v[i*n + j] + this.v[(i-1)*n + j+1] + this.v[i*n + j+1]) * 0.25;
-			return v;
-		}
-
-		advectVel(dt) {
-			this.newU.set(this.u);
-			this.newV.set(this.v);
-
-			var n = this.numY;
-			var h = this.h;
-			var h2 = 0.5 * h;
-
-			for (var i = 1; i < this.numX; i++) {
-				for (var j = 1; j < this.numY; j++) {
-
-					cnt++; // counter
-
-					// u component
-					if (this.s[i*n + j] != 0.0 && this.s[(i-1)*n + j] != 0.0 && j < this.numY - 1) {
-						var x = i*h;
-						var y = j*h + h2;
-						var u = this.u[i*n + j];
-						var v = this.avgV(i, j);
-
-						x = x - dt*u;
-						y = y - dt*v;
-						u = this.sampleField(x,y, U_FIELD);
-						this.newU[i*n + j] = u;
+					if (scene.showPressure) {
+						var p = f.p[i*n + j];
+						var s = f.m[i*n + j];
+						color = getSciColor(p, minP, maxP);
+						if (scene.showSmoke) {
+							color[0] = Math.max(0.0, color[0] - 255*s);
+							color[1] = Math.max(0.0, color[1] - 255*s);
+							color[2] = Math.max(0.0, color[2] - 255*s);
+						}
+					}
+					else if (scene.showSmoke) {
+						var s = f.m[i*n + j];
+						color[0] = 255*s;
+						color[1] = 255*s;
+						color[2] = 255*s;
+					}
+					else if (f.s[i*n + j] == 0.0) {
+						color[0] = 0;
+						color[1] = 0;
+						color[2] = 0;
 					}
 
-					// v component
-					if (this.s[i*n + j] != 0.0 && this.s[i*n + j-1] != 0.0 && i < this.numX - 1) {
-						var x = i*h + h2;
-						var y = j*h;
-						var u = this.avgU(i, j);
+					var x = Math.floor(cX(i * h));
+					var y = Math.floor(cY((j+1) * h));
+					var cx = Math.floor(cScale * h) + 1;
+					var cy = Math.floor(cScale * h) + 1;
 
-						var v = this.v[i*n + j];
-						x = x - dt*u;
-						y = y - dt*v;
-						v = this.sampleField(x,y, V_FIELD);
-						this.newV[i*n + j] = v;
-					}
-				}	 
-			}
-			this.u.set(this.newU);
-			this.v.set(this.newV);
-		}
+					r = color[0];
+					g = color[1];
+					b = color[2];
 
-		// This function is specifically designed for advecting a scalar field representing smoke density within the fluid simulation.
-		advectSmoke(dt) {
-			this.newM.set(this.m);
+					for (var yi = y; yi < y + cy; yi++) {
+						var p = 4 * (yi * canvas.width + x)
 
-			var n = this.numY;
-			var h = this.h;
-			var h2 = 0.5 * h;
-
-			for (var i = 1; i < this.numX-1; i++) {
-				for (var j = 1; j < this.numY-1; j++) {
-
-					if (this.s[i*n + j] != 0.0) {
-						var u = (this.u[i*n + j] + this.u[(i+1)*n + j]) * 0.5;
-						var v = (this.v[i*n + j] + this.v[i*n + j+1]) * 0.5;
-						var x = i*h + h2 - dt*u;
-						var y = j*h + h2 - dt*v;
-
-						this.newM[i*n + j] = this.sampleField(x,y, S_FIELD);
- 					}
-				}	 
-			}
-			this.m.set(this.newM);
-		}
-
-		// ----------------- end of simulator ------------------------------
-		simulate(dt, numIters) {
-			this.p.fill(0.0);
-			this.solveIncompressibility(numIters, dt);
-
-			this.extrapolate();
-			this.advectVel(dt);
-			this.advectSmoke(dt);
-		}
-	}
-
-	var scene = {
-		paused: false,
-		showObstacle: false,
-		showPressure: false,
-		showSmoke: true,
-		fluid: null
-	};
-
-	function setupScene() {
-		scene.obstacleRadius = 0.10;
-		scene.setObstacleX = 0.5;
-		scene.setObstacleY = 0.4;
-		scene.overRelaxation = 1.9; // should be between 1 and 2
-		scene.dt = 1.0 / 60.0;
-		scene.numIters = 50;
-
-		var res = 100;
-		var domainHeight = 1;
-		var domainWidth = domainHeight / simHeight * simWidth;
-		var h = domainHeight / res;
-
-		var numX = Math.floor(domainWidth / h);
-		var numY = Math.floor(domainHeight / h);
-		var density = 1;
-
-		f = scene.fluid = new Fluid(density, numX, numY, h);
-		var n = f.numY;
-
-		// vortex shedding
-		var inVel = 2.0;
-		for (var i = 0; i < f.numX; i++) {
-			for (var j = 0; j < f.numY; j++) {
-				var s = 1.0;	// fluid
-				if (i == 0 || j == 0 || j == f.numY-1)
-					s = 0.0;	// solid
-				f.s[i*n + j] = s
-				f.u[i*n + j] = inVel;
-			}
-		}
-
-		// initializing the flow
-		for (var j = 0; j < f.numY; j++)
-			f.m[j] = 0;
-
-		setObstacle(scene.setObstacleX, scene.setObstacleY, true)
-		scene.showPressure = false;
-		scene.showSmoke = true;
-	}
-
-	// draw -------------------------------------------------------
-
-	// inputs are values from 0 to 1 of r g and b and it returns floored 0 - 255 values
-	function setColor(r,g,b) {
-		c.fillStyle = `rgb(
-			${Math.floor(255*r)},
-			${Math.floor(255*g)},
-			${Math.floor(255*b)})`
-
-		c.strokeStyle = `rgb(
-			${Math.floor(255*r)},
-			${Math.floor(255*g)},
-			${Math.floor(255*b)})`
-	}
-
-	function getSciColor(val, minVal, maxVal) {
-		val = Math.min(Math.max(val, minVal), maxVal- 0.0001);
-		var d = maxVal - minVal;
-		if (d == 0.0) {
-    		val = 0.5;
-		} else {
-    		val = (val - minVal) / d;
-		}
-		var m = 0.25;
-		var num = Math.floor(val / m);
-		var s = (val - num * m) / m;
-		var r, g, b;
-
-		switch (num) {
-			case 0: 
-				r = 0.0; 
-				g = s; 
-				b = 1.0; 
-				break;
-			case 1: 
-				r = 0.0; 
-				g = 1.0; 
-				b = 1.0-s; 
-				break;
-			case 2: 
-				r = s; 
-				g = 1.0; 
-				b = 0.0; 
-				break;
-			case 3: 
-				r = 1.0; 
-				g = 1.0 - s; 
-				b = 0.0; 
-				break;
-		}
-		return[255*r,255*g,255*b, 255]
-	}
-
-	function draw() {
-		c.clearRect(0, 0, canvas.width, canvas.height);
-		f = scene.fluid;
-		n = f.numY;
-		var h = f.h;
-
-		minP = f.p[0];
-		maxP = f.p[0];
-
-		for (var i = 0; i < f.numCells; i++) {
-			minP = Math.min(minP, f.p[i]);
-			maxP = Math.max(maxP, f.p[i]);
-		}
-
-		id = c.getImageData(0,0, canvas.width, canvas.height)
-
-		var color = [255, 255, 255, 255]
-
-		for (var i = 0; i < f.numX; i++) {
-			for (var j = 0; j < f.numY; j++) {
-
-				if (scene.showPressure) {
-					var p = f.p[i*n + j];
-					var s = f.m[i*n + j];
-					color = getSciColor(p, minP, maxP);
-					if (scene.showSmoke) {
-						color[0] = Math.max(0.0, color[0] - 255*s);
-						color[1] = Math.max(0.0, color[1] - 255*s);
-						color[2] = Math.max(0.0, color[2] - 255*s);
-					}
-				}
-				else if (scene.showSmoke) {
-					var s = f.m[i*n + j];
-					color[0] = 255*s;
-					color[1] = 255*s;
-					color[2] = 255*s;
-				}
-				else if (f.s[i*n + j] == 0.0) {
-					color[0] = 0;
-					color[1] = 0;
-					color[2] = 0;
-				}
-
-				var x = Math.floor(cX(i * h));
-				var y = Math.floor(cY((j+1) * h));
-				var cx = Math.floor(cScale * h) + 1;
-				var cy = Math.floor(cScale * h) + 1;
-
-				r = color[0];
-				g = color[1];
-				b = color[2];
-
-				for (var yi = y; yi < y + cy; yi++) {
-					var p = 4 * (yi * canvas.width + x)
-
-					for (var xi = 0; xi < cx; xi++) {
-						id.data[p++] = r;
-						id.data[p++] = g;
-						id.data[p++] = b;
-						id.data[p++] = 255;
+						for (var xi = 0; xi < cx; xi++) {
+							id.data[p++] = r;
+							id.data[p++] = g;
+							id.data[p++] = b;
+							id.data[p++] = 255;
+						}
 					}
 				}
 			}
+
+			c.putImageData(id, 0, 0);
+
+			if (scene.showObstacle) {
+				c.strokeW
+				r = scene.obstacleRadius + f.h;
+				if (scene.showPressure)
+					c.fillStyle = "#000000";
+				else
+					c.fillStyle = "#DDDDDD";
+				c.beginPath();	
+				c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
+				c.closePath();
+				c.fill();
+
+				c.lineWidth = 3.0;
+				c.strokeStyle = "#000000";
+				c.beginPath();	
+				c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
+				c.closePath();
+				c.stroke();
+				c.lineWidth = 1.0;
+			}
+
+			if (scene.showPressure) {
+				var s = "pressure: " + minP.toFixed(0) + " - " + maxP.toFixed(0) + " N/m";
+				c.fillStyle ="#000000";
+				c.font = "16px Arial";
+				c.fillText(s, 10, 35);
+			}
 		}
 
-		c.putImageData(id, 0, 0);
+		function setObstacle(x, y, reset) {
+			var vx = 0.0;
+			var vy = 0.0;
 
-		if (scene.showObstacle) {
-			c.strokeW
-			r = scene.obstacleRadius + f.h;
-			if (scene.showPressure)
-				c.fillStyle = "#000000";
+			if (!reset) {
+				vx = (x - scene.obstacleX) / scene.dt;
+				vy = (y - scene.obstacleY) / scene.dt;
+			}
+
+			scene.obstacleX = x;
+			scene.obstacleY = y;
+			var r = scene.obstacleRadius;
+			var f = scene.fluid;
+			var n = f.numY;
+			var cd = Math.sqrt(2) * f.h;
+
+			for (var i = 1; i < f.numX; i++) {
+				for (var j = 1; j < f.numY-2; j++) {
+					f.s[i*n + j] = 1.0;
+
+					dx = (i + 0.5) * f.h - x;
+					dy = (j + 0.5) * f.h - y;
+
+					if (dx * dx + dy * dy < r * r) {
+						f.s[i*n + j] = 0.0;
+						f.m[i*n + j] = 1.0;
+						f.u[i*n + j] = vx;
+						f.u[(i+1)*n + j] = vx;
+						f.v[i*n + j] = vy;
+						f.v[i*n + j+1] = vy;
+					}
+				}
+			}
+			scene.showObstacle = true;
+		}
+
+		// interaction -------------------------------------------------------
+		document.addEventListener('keydown', event => {
+			switch(event.key) {
+				case ' ': 
+					scene.paused = !scene.paused; 
+					break;
+				case 'm': 
+				scene.paused = false; 
+				simulate(); 
+				scene.paused = true; 
+				break;
+			}
+		});
+
+		function toggleStart(){
+			var button = document.getElementById('startButton');
+			if (scene.paused)
+				button.innerHTML = "Stop";
 			else
-				c.fillStyle = "#DDDDDD";
-			c.beginPath();	
-			c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
-			c.closePath();
-			c.fill();
-
-			c.lineWidth = 3.0;
-			c.strokeStyle = "#000000";
-			c.beginPath();	
-			c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
-			c.closePath();
-			c.stroke();
-			c.lineWidth = 1.0;
+				button.innerHTML = "Start";
+			scene.paused = !scene.paused;
 		}
 
-		if (scene.showPressure) {
-			var s = "pressure: " + minP.toFixed(0) + " - " + maxP.toFixed(0) + " N/m";
-			c.fillStyle ="#000000";
-			c.font = "16px Arial";
-			c.fillText(s, 10, 35);
-		}
-	}
-
-	function setObstacle(x, y, reset) {
-		var vx = 0.0;
-		var vy = 0.0;
-
-		if (!reset) {
-			vx = (x - scene.obstacleX) / scene.dt;
-			vy = (y - scene.obstacleY) / scene.dt;
+		// main -------------------------------------------------------
+		function simulate() {
+			if (!scene.paused)
+				scene.fluid.simulate(scene.dt, scene.numIters)
+				scene.frameNr++;
 		}
 
-		scene.obstacleX = x;
-		scene.obstacleY = y;
-		var r = scene.obstacleRadius;
-		var f = scene.fluid;
-		var n = f.numY;
-		var cd = Math.sqrt(2) * f.h;
-
-		for (var i = 1; i < f.numX; i++) {
-			for (var j = 1; j < f.numY-2; j++) {
-				f.s[i*n + j] = 1.0;
-
-				dx = (i + 0.5) * f.h - x;
-				dy = (j + 0.5) * f.h - y;
-
-				if (dx * dx + dy * dy < r * r) {
-					f.s[i*n + j] = 0.0;
-					f.m[i*n + j] = 1.0;
-					f.u[i*n + j] = vx;
-					f.u[(i+1)*n + j] = vx;
-					f.v[i*n + j] = vy;
-					f.v[i*n + j+1] = vy;
-				}
-			}
+		function update() {
+			simulate();
+			draw();
+			requestAnimationFrame(update);
 		}
-		scene.showObstacle = true;
-	}
-
-	// interaction -------------------------------------------------------
-	document.addEventListener('keydown', event => {
-		switch(event.key) {
-			case ' ': 
-				scene.paused = !scene.paused; 
-				break;
-			case 'm': 
-			scene.paused = false; 
-			simulate(); 
-			scene.paused = true; 
-			break;
-		}
-	});
-
-	function toggleStart(){
-		var button = document.getElementById('startButton');
-		if (scene.paused)
-			button.innerHTML = "Stop";
-		else
-			button.innerHTML = "Start";
-		scene.paused = !scene.paused;
-	}
-
-	// main -------------------------------------------------------
-	function simulate() {
-		if (!scene.paused)
-			scene.fluid.simulate(scene.dt, scene.numIters)
-			scene.frameNr++;
-	}
-
-	function update() {
-		simulate();
-		draw();
-		requestAnimationFrame(update);
-	}
-	
-	setupScene();
-	update();
-</script> 
+		
+		setupScene();
+		update();
+	</script> 
 </body>
 </html>
