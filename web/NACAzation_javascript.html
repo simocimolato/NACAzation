@@ -96,7 +96,7 @@ Simone Cimolato, Thomas Reilly
 				this.newV = new Float32Array(this.numCells);
 				this.p = new Float32Array(this.numCells);	// pressure
 				this.s = new Float32Array(this.numCells);	// keeps track of whether a cell is fluid (s_ij = 1) or wall/obstacle (s_ij = 0)
-				this.m = new Float32Array(this.numCells);	// density
+				this.m = new Float32Array(this.numCells);	// object position
 				this.newM = new Float32Array(this.numCells);
 				this.force = 0;								// force exerted on the body by the fluid
 				this.m.fill(0)
@@ -142,7 +142,7 @@ Simone Cimolato, Thomas Reilly
 					}
 				}
 				// CD & CL calculation and printing
-				var cx = 2 * this.force / (this.density * scene.inVel * scene.inVel * scene.obstacleRadius);
+				var cx = 2 * this.force / (this.density * scene.inVel * scene.inVel * 2 * scene.obstacleRadius);
 				document.getElementById("CX").innerHTML = "CX: " + cx.toFixed(4);
 			}
 			
