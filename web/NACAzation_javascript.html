@@ -72,8 +72,6 @@ Simone Cimolato, Thomas Reilly
 		var V_FIELD = 1;
 		var S_FIELD = 2;
 
-		var cnt = 0; // counter
-
 		function cX(x) {
 			return x * cScale;
 		}
@@ -108,7 +106,6 @@ Simone Cimolato, Thomas Reilly
 				var cp = this.density * this.h / dt;
 
 				for (var iter = 0; iter < numIters; iter++) {
-					this.force = 0;
 					for (var i = 1; i < this.numX-1; i++) {
 						for (var j = 1; j < this.numY-1; j++) {
 							if (this.s[i*n + j] == 0.0)
@@ -120,6 +117,7 @@ Simone Cimolato, Thomas Reilly
 							var sy0 = this.s[i*n + j-1];
 							var sy1 = this.s[i*n + j+1];
 							var s = sx0 + sx1 + sy0 + sy1;
+
 							if (s == 0.0)
 								continue;
 
@@ -131,9 +129,6 @@ Simone Cimolato, Thomas Reilly
 							p *= scene.overRelaxation;
 							this.p[i*n + j] += cp * p; 
 							
-							if (s != 4 && i > 5 && i <this.numX-15 && j>5 && j <this.numY-15) // temporary condition
-								this.force += p;
-
 							this.u[i*n + j] -= sx0 * p;
 							this.u[(i+1)*n + j] += sx1 * p;
 							this.v[i*n + j] -= sy0 * p;
@@ -141,8 +136,31 @@ Simone Cimolato, Thomas Reilly
 						}
 					}
 				}
+
+				// calculating the pressure
+				this.force = 0;
+				for (var i = 1; i < this.numX-1; i++) {
+					for (var j = 1; j < this.numY-1; j++) {
+						if (this.s[i*n + j] == 0.0)
+							continue;
+
+						var s = this.s[i*n + j];
+						var sx0 = this.s[(i-1)*n + j];
+						var sx1 = this.s[(i+1)*n + j];
+						var sy0 = this.s[i*n + j-1];
+						var sy1 = this.s[i*n + j+1];
+						var s = sx0 + sx1 + sy0 + sy1;
+
+						if (s == 0.0)
+								continue;
+
+						if (s < 4 && i > 5 && i <this.numX-15 && j>5 && j <this.numY-15){ // temporary condition
+							this.force += this.p[i*n + j];
+						}
+					}
+				}
 				// CD & CL calculation and printing
-				var cx = 2 * this.force / (this.density * scene.inVel * scene.inVel * 2 * scene.obstacleRadius);
+				var cx = Math.abs(2 * this.force / (this.density * scene.inVel * scene.inVel * 2 * scene.obstacleRadius)); // this shit is wrong, should be 100x less
 				document.getElementById("CX").innerHTML = "CX: " + cx.toFixed(4);
 			}
 			
@@ -200,7 +218,6 @@ Simone Cimolato, Thomas Reilly
 					tx*sy * f[x1*n + y0] +
 					tx*ty * f[x1*n + y1] +
 					sx*ty * f[x0*n + y1];
-				
 				return val;
 			}
 
@@ -226,8 +243,6 @@ Simone Cimolato, Thomas Reilly
 
 				for (var i = 1; i < this.numX; i++) {
 					for (var j = 1; j < this.numY; j++) {
-
-						cnt++; // counter
 
 						// u component
 						if (this.s[i*n + j] != 0.0 && this.s[(i-1)*n + j] != 0.0 && j < this.numY - 1) {
@@ -311,7 +326,7 @@ Simone Cimolato, Thomas Reilly
 			scene.dt = 1.0 / 60.0;
 			scene.numIters = 50;
 
-			var res = 100;
+			var res = 105; // default is 100
 			var domainHeight = 1;
 			var domainWidth = domainHeight / simHeight * simWidth;
 			var h = domainHeight / res;
@@ -372,7 +387,7 @@ Simone Cimolato, Thomas Reilly
 			var s = (val - num * m) / m;
 			var r, g, b;
 
-			switch (num) {
+			switch(num) {
 				case 0: 
 					r = 0.0; 
 					g = s; 
@@ -405,10 +420,12 @@ Simone Cimolato, Thomas Reilly
 
 			minP = f.p[0];
 			maxP = f.p[0];
+			var maxSpeed = 0;
 
 			for (var i = 0; i < f.numCells; i++) {
 				minP = Math.min(minP, f.p[i]);
 				maxP = Math.max(maxP, f.p[i]);
+				maxSpeed = Math.max(maxSpeed, f.p[i]);
 			}
 
 			id = c.getImageData(0,0, canvas.width, canvas.height)
@@ -429,15 +446,11 @@ Simone Cimolato, Thomas Reilly
 						}
 					}
 					else if (scene.showSmoke) {
-						var s = f.m[i*n + j];
-						color[0] = 255*s;
-						color[1] = 255*s;
-						color[2] = 255*s;
-					}
-					else if (f.s[i*n + j] == 0.0) {
-						color[0] = 0;
-						color[1] = 0;
-						color[2] = 0;
+						var speed = Math.sqrt(f.u[i*n + j] * f.u[i*n + j] + f.v[i*n + j] * f.v[i*n + j]);
+						var speedNorm = speed / maxSpeed;
+						color[0] = 255 * speedNorm;
+						color[1] = 255 * speedNorm;
+						color[2] = 255 * speedNorm;
 					}
 
 					var x = Math.floor(cX(i * h));
@@ -507,7 +520,6 @@ Simone Cimolato, Thomas Reilly
 			var r = scene.obstacleRadius;
 			var f = scene.fluid;
 			var n = f.numY;
-			var cd = Math.sqrt(2) * f.h;
 
 			for (var i = 1; i < f.numX; i++) {
 				for (var j = 1; j < f.numY-2; j++) {
