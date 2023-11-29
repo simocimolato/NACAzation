@@ -80,6 +80,16 @@ Simone Cimolato, Thomas Reilly
 			return canvas.height - y * cScale;
 		}
 
+		function mean(array) {
+			// Check if the array is not empty
+			if (array.length === 0) {
+				return NaN;
+			}
+
+			// Calculate the mean using reduce
+			return array.reduce((sum, currentValue) => sum + currentValue, 0) / array.length;
+		}
+
 		// ----------------- start of simulator ------------------------------
 		class Fluid {
 			constructor(density, numX, numY, h) {
@@ -160,8 +170,11 @@ Simone Cimolato, Thomas Reilly
 					}
 				}
 				// CD & CL calculation and printing
-				var cx = Math.abs(2 * this.force / (this.density * scene.inVel * scene.inVel * 2 * scene.obstacleRadius)); // this shit is wrong, should be 100x less
-				document.getElementById("CX").innerHTML = "CX: " + cx.toFixed(4);
+				scene.cx.push(Math.abs(2 * this.force / (this.density * scene.inVel * scene.inVel * 2 * scene.obstacleRadius))); // this shit is wrong, should be 100x less
+				if(scene.cx.length % scene.interval == 0){
+					// average of the last scene.interval elements
+					document.getElementById("CX").innerHTML = "CX: " + mean(scene.cx.slice(scene.cx.length - scene.interval)).toFixed(4);
+				}
 			}
 			
 			extrapolate() {
@@ -315,24 +328,25 @@ Simone Cimolato, Thomas Reilly
 			showObstacle: false,
 			showPressure: false,
 			showSmoke: true,
-			fluid: null
+			fluid: null,
+			obstacleRadius: 0.10,
+			setObstacleX: 0.5,
+			setObstacleY: 0.4,
+			overRelaxation: 1.9, // should be between 1 and 2
+			dt: 1.0 / 60.0,
+			numIters: 50,
+			res: 105, // default is 100
+			domainHeight: 1,
+			cx: [],
+			interval: 25,
 		};
 
 		function setupScene() {
-			scene.obstacleRadius = 0.10;
-			scene.setObstacleX = 0.5;
-			scene.setObstacleY = 0.4;
-			scene.overRelaxation = 1.9; // should be between 1 and 2
-			scene.dt = 1.0 / 60.0;
-			scene.numIters = 50;
-
-			var res = 105; // default is 100
-			var domainHeight = 1;
-			var domainWidth = domainHeight / simHeight * simWidth;
-			var h = domainHeight / res;
+			var domainWidth = scene.domainHeight / simHeight * simWidth;
+			var h = scene.domainHeight / scene.res;
 
 			var numX = Math.floor(domainWidth / h);
-			var numY = Math.floor(domainHeight / h);
+			var numY = Math.floor(scene.domainHeight / h);
 			density = 1;
 
 			f = scene.fluid = new Fluid(density, numX, numY, h);
