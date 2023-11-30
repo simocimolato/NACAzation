@@ -17,10 +17,10 @@ Simone Cimolato, Thomas Reilly
 			}	
 
 			#CX {
-				font-size: 26px; /* Adjust the font size as needed */
-				color: #333; /* Set the text color */
+				font-size: 26px; 	/* Adjust the font size as needed */
+				color: #333; 	   /* Set the text color */
 				font-family: 'Arial', sans-serif; /* Set the font family */
-				margin-top: 10px; /* Add some top margin for spacing */
+				margin-top: 10px;   /* Add some top margin for spacing */
 				margin-right: 60px; /* Add some top margin for spacing */
 				float: right;
 			}
@@ -90,6 +90,22 @@ Simone Cimolato, Thomas Reilly
 			return array.reduce((sum, currentValue) => sum + currentValue, 0) / array.length;
 		}
 
+		function calculateCurl(u, v, sizeX, sizeY) {
+			f = scene.fluid;
+			// Calculate the curl using finite differences
+			for (let i = 1; i < sizeX - 1; i++) {
+				for (let j = 1; j < sizeY - 1; j++) {
+					// Calculate partial derivatives
+					const du_dy = (u[(i - 1) * sizeY + j +1] - u[(i - 1) * sizeY + j -1]) / 2;
+					const dv_dx = (v[(i - 1) * sizeY + j +1] - v[(i - 1) * sizeY + j -1]) / 2;
+
+					// Calculate curl
+					f.curl[(i - 1) * sizeY + j] = dv_dx - du_dy;
+				}
+			}
+			return f.curl;
+		}
+
 		// ----------------- start of simulator ------------------------------
 		class Fluid {
 			constructor(density, numX, numY, h) {
@@ -97,17 +113,20 @@ Simone Cimolato, Thomas Reilly
 				this.numX = numX + 3; 
 				this.numY = numY + 3;
 				this.numCells = this.numX * this.numY;
-				this.h = h;									// grid spacing
-				this.u = new Float32Array(this.numCells);	// horizontal velocity
-				this.v = new Float32Array(this.numCells);	// vertical velocity
+				this.h = h;									 // grid spacing
+				this.u = new Float32Array(this.numCells);	 // horizontal velocity
+				this.v = new Float32Array(this.numCells);	 // vertical velocity
 				this.newU = new Float32Array(this.numCells);
 				this.newV = new Float32Array(this.numCells);
-				this.p = new Float32Array(this.numCells);	// pressure
-				this.s = new Float32Array(this.numCells);	// keeps track of whether a cell is fluid (s_ij = 1) or wall/obstacle (s_ij = 0)
-				this.m = new Float32Array(this.numCells);	// object position
+				this.p = new Float32Array(this.numCells);	 // pressure
+				this.s = new Float32Array(this.numCells);	 // keeps track of whether a cell is fluid (s_ij = 1) or wall/obstacle (s_ij = 0)
+				this.m = new Float32Array(this.numCells);	 // object position
 				this.newM = new Float32Array(this.numCells);
-				this.force = 0;								// force exerted on the body by the fluid
-				this.m.fill(0)
+				this.curl = new Float32Array(this.numCells); // curl
+				this.force = 0;								 // force exerted on the body by the fluid
+				this.m.fill(0);
+				this.p.fill(0.0);
+				this.curl.fill(0.0);
 				var num = numX * numY;
 			}
 
@@ -315,6 +334,7 @@ Simone Cimolato, Thomas Reilly
 			// ----------------- end of simulator ------------------------------
 			simulate(dt, numIters) {
 				this.p.fill(0.0);
+				this.curl.fill(0.0);
 				this.solveIncompressibility(numIters, dt);
 
 				this.extrapolate();
@@ -325,9 +345,10 @@ Simone Cimolato, Thomas Reilly
 
 		var scene = {
 			paused: false,
-			showObstacle: false,
+			showObstacle: true,
 			showPressure: false,
 			showSmoke: true,
+			showCurl: false,
 			fluid: null,
 			obstacleRadius: 0.10,
 			setObstacleX: 0.5,
@@ -369,25 +390,11 @@ Simone Cimolato, Thomas Reilly
 				f.m[j] = 0;
 
 			setObstacle(scene.setObstacleX, scene.setObstacleY, true)
-			scene.showPressure = false;
-			scene.showSmoke = true;
 		}
 
 		// draw -------------------------------------------------------
 
 		// inputs are values from 0 to 1 of r g and b and it returns floored 0 - 255 values
-		function setColor(r,g,b) {
-			c.fillStyle = `rgb(
-				${Math.floor(255*r)},
-				${Math.floor(255*g)},
-				${Math.floor(255*b)})`
-
-			c.strokeStyle = `rgb(
-				${Math.floor(255*r)},
-				${Math.floor(255*g)},
-				${Math.floor(255*b)})`
-		}
-
 		function getSciColor(val, minVal, maxVal) {
 			val = Math.min(Math.max(val, minVal), maxVal- 0.0001);
 			var d = maxVal - minVal;
@@ -423,7 +430,10 @@ Simone Cimolato, Thomas Reilly
 					b = 0.0; 
 					break;
 			}
-			return[255*r,255*g,255*b, 255]
+			if(scene.showCurl)
+				return[255*r, 0*g, 255*b, 255];
+			else
+				return[255*r, 255*g, 255*b, 255];
 		}
 
 		function draw() {
@@ -434,11 +444,17 @@ Simone Cimolato, Thomas Reilly
 
 			minP = f.p[0];
 			maxP = f.p[0];
+			minCurl = f.curl[0];
+			maxCurl = f.curl[0];
 			var maxSpeed = 0;
+
+			f.curl = calculateCurl(f.u, f.v, f.numX, f.numY)
 
 			for (var i = 0; i < f.numCells; i++) {
 				minP = Math.min(minP, f.p[i]);
 				maxP = Math.max(maxP, f.p[i]);
+				minCurl = Math.min(minCurl, f.curl[i]);
+				maxCurl = Math.max(maxCurl, f.curl[i]);
 				maxSpeed = Math.max(maxSpeed, f.p[i]);
 			}
 
@@ -448,7 +464,6 @@ Simone Cimolato, Thomas Reilly
 
 			for (var i = 0; i < f.numX; i++) {
 				for (var j = 0; j < f.numY; j++) {
-
 					if (scene.showPressure) {
 						var p = f.p[i*n + j];
 						var s = f.m[i*n + j];
@@ -458,6 +473,11 @@ Simone Cimolato, Thomas Reilly
 							color[1] = Math.max(0.0, color[1] - 255*s);
 							color[2] = Math.max(0.0, color[2] - 255*s);
 						}
+					}
+					else if (scene.showCurl) {
+						var curlTemp = f.curl[i*n + j];
+						var s = f.m[i*n + j];
+						color = getSciColor(curlTemp, minCurl, maxCurl);
 					}
 					else if (scene.showSmoke) {
 						var speed = Math.sqrt(f.u[i*n + j] * f.u[i*n + j] + f.v[i*n + j] * f.v[i*n + j]);
@@ -503,15 +523,16 @@ Simone Cimolato, Thomas Reilly
 				c.closePath();
 				c.fill();
 
-				c.lineWidth = 3.0;
+				c.lineWidth = 1.0;
 				c.strokeStyle = "#000000";
 				c.beginPath();	
 				c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
 				c.closePath();
 				c.stroke();
-				c.lineWidth = 1.0;
+				c.lineWidth = 0.5;
 			}
 
+			// printing min and max pressure values
 			if (scene.showPressure) {
 				var s = "pressure: " + minP.toFixed(0) + " - " + maxP.toFixed(0) + " N/m";
 				c.fillStyle ="#000000";
