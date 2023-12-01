@@ -461,6 +461,7 @@ Simone Cimolato, Thomas Reilly
 			id = c.getImageData(0,0, canvas.width, canvas.height)
 
 			var color = [255, 255, 255, 255]
+			var speedShift = 1.25;
 
 			for (var i = 0; i < f.numX; i++) {
 				for (var j = 0; j < f.numY; j++) {
@@ -481,7 +482,7 @@ Simone Cimolato, Thomas Reilly
 					}
 					else if (scene.showSmoke) {
 						var speed = Math.sqrt(f.u[i*n + j] * f.u[i*n + j] + f.v[i*n + j] * f.v[i*n + j]);
-						var speedNorm = speed / maxSpeed;
+						var speedNorm = speed / (speedShift * maxSpeed);
 						color[0] = 255 * speedNorm;
 						color[1] = 255 * speedNorm;
 						color[2] = 255 * speedNorm;
