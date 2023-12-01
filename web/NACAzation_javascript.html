@@ -7,7 +7,6 @@ Simone Cimolato, Thomas Reilly
 <!DOCTYPE html>
 <html>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 	<head>
 		<title>NACAzation</title>
 		<style>
@@ -48,7 +47,6 @@ Simone Cimolato, Thomas Reilly
 			}
 		</style>
 	</head>
-	
 <body>
 	<canvas id="myCanvas" style="border:2px solid"></canvas>
 	<div id = "CX">
@@ -92,41 +90,25 @@ Simone Cimolato, Thomas Reilly
 		var V_FIELD = 1;
 		var S_FIELD = 2;
 
-		function cX(x) {
-			return x * cScale;
-		}
+		var scene = {
+			paused: false,
+			showObstacle: true,
+			showPressure: false,
+			showSpeed: true,
+			showCurl: false,
+			fluid: null,
+			obstacleRadius: 0.10,
+			setObstacleX: 0.5,
+			setObstacleY: 0.4,
+			overRelaxation: 1.9, // should be between 1 and 2
+			dt: 1.0 / 60.0,
+			numIters: 50,
+			res: 105, // default is 100
+			domainHeight: 1,
+			cx: [],
+			interval: 25,
+		};
 
-		function cY(y) {
-			return canvas.height - y * cScale;
-		}
-
-		function mean(array) {
-			// Check if the array is not empty
-			if (array.length === 0) {
-				return NaN;
-			}
-
-			// Calculate the mean using reduce
-			return array.reduce((sum, currentValue) => sum + currentValue, 0) / array.length;
-		}
-
-		function calculateCurl(u, v, sizeX, sizeY) {
-			f = scene.fluid;
-			// Calculate the curl using finite differences
-			for (let i = 1; i < sizeX - 1; i++) {
-				for (let j = 1; j < sizeY - 1; j++) {
-					// Calculate partial derivatives
-					const du_dy = (u[(i - 1) * sizeY + j +1] - u[(i - 1) * sizeY + j -1]) / 2;
-					const dv_dx = (v[(i - 1) * sizeY + j +1] - v[(i - 1) * sizeY + j -1]) / 2;
-
-					// Calculate curl
-					f.curl[(i - 1) * sizeY + j] = dv_dx - du_dy;
-				}
-			}
-			return f.curl;
-		}
-
-		// ----------------- start of simulator ------------------------------
 		class Fluid {
 			constructor(density, numX, numY, h) {
 				this.density = density;
@@ -351,7 +333,6 @@ Simone Cimolato, Thomas Reilly
 				this.m.set(this.newM);
 			}
 
-			// ----------------- end of simulator ------------------------------
 			simulate(dt, numIters) {
 				this.p.fill(0.0);
 				this.curl.fill(0.0);
@@ -362,25 +343,40 @@ Simone Cimolato, Thomas Reilly
 				this.advectSmoke(dt);
 			}
 		}
+		
+		function cX(x) {
+			return x * cScale;
+		}
 
-		var scene = {
-			paused: false,
-			showObstacle: true,
-			showPressure: false,
-			showSpeed: true,
-			showCurl: false,
-			fluid: null,
-			obstacleRadius: 0.10,
-			setObstacleX: 0.5,
-			setObstacleY: 0.4,
-			overRelaxation: 1.9, // should be between 1 and 2
-			dt: 1.0 / 60.0,
-			numIters: 50,
-			res: 105, // default is 100
-			domainHeight: 1,
-			cx: [],
-			interval: 25,
-		};
+		function cY(y) {
+			return canvas.height - y * cScale;
+		}
+
+		function mean(array) {
+			// Check if the array is not empty
+			if (array.length === 0) {
+				return NaN;
+			}
+
+			// Calculate the mean using reduce
+			return array.reduce((sum, currentValue) => sum + currentValue, 0) / array.length;
+		}
+
+		function calculateCurl(u, v, sizeX, sizeY) {
+			f = scene.fluid;
+			// Calculate the curl using finite differences
+			for (let i = 1; i < sizeX - 1; i++) {
+				for (let j = 1; j < sizeY - 1; j++) {
+					// Calculate partial derivatives
+					const du_dy = (u[(i - 1) * sizeY + j +1] - u[(i - 1) * sizeY + j -1]) / 2;
+					const dv_dx = (v[(i - 1) * sizeY + j +1] - v[(i - 1) * sizeY + j -1]) / 2;
+
+					// Calculate curl
+					f.curl[(i - 1) * sizeY + j] = dv_dx - du_dy;
+				}
+			}
+			return f.curl;
+		}
 
 		function setupScene() {
 			var domainWidth = scene.domainHeight / simHeight * simWidth;
