@@ -24,6 +24,28 @@ Simone Cimolato, Thomas Reilly
 				margin-right: 60px; /* Add some top margin for spacing */
 				float: right;
 			}
+
+			.button-container {
+				display: flex;
+			}
+
+			input[type="radio"] {
+				display: none;
+			}
+
+			label {
+				cursor: pointer;
+				padding: 8px 16px;
+				border: 1px solid #ccc;
+				margin-right: 5px;
+				font-family: 'Arial', sans-serif;
+				border-radius: 10px; /* Rounded corners */
+			}
+
+			input[type="radio"]:checked + label {
+				background-color: #3498db;
+				color: #fff;
+			}
 		</style>
 	</head>
 	
@@ -51,10 +73,8 @@ Simone Cimolato, Thomas Reilly
 
 		TODO:
 			- implement airfoils
-			- plott speed, pressure, curl
 			- input interface for airfoil generation
-			- printing on screen of drag/lift and CD/CL
-			- grouping input variables and in general make everything prettier
+			- print on screen of drag/lift and CD/CL
 		*/
 
 		var canvas = document.getElementById("myCanvas");
@@ -347,7 +367,7 @@ Simone Cimolato, Thomas Reilly
 			paused: false,
 			showObstacle: true,
 			showPressure: false,
-			showSmoke: true,
+			showSpeed: true,
 			showCurl: false,
 			fluid: null,
 			obstacleRadius: 0.10,
@@ -442,20 +462,26 @@ Simone Cimolato, Thomas Reilly
 			n = f.numY;
 			var h = f.h;
 
-			minP = f.p[0];
-			maxP = f.p[0];
-			minCurl = f.curl[0];
-			maxCurl = f.curl[0];
-			var maxSpeed = 0;
-
-			f.curl = calculateCurl(f.u, f.v, f.numX, f.numY)
-
-			for (var i = 0; i < f.numCells; i++) {
-				minP = Math.min(minP, f.p[i]);
-				maxP = Math.max(maxP, f.p[i]);
-				minCurl = Math.min(minCurl, f.curl[i]);
-				maxCurl = Math.max(maxCurl, f.curl[i]);
-				maxSpeed = Math.max(maxSpeed, f.p[i]);
+			if(scene.showCurl){
+				f.curl = calculateCurl(f.u, f.v, f.numX, f.numY)
+				minCurl = f.curl[0];
+				maxCurl = f.curl[0];
+				for (var i = 0; i < f.numCells; i++) {
+					minCurl = Math.min(minCurl, f.curl[i]);
+					maxCurl = Math.max(maxCurl, f.curl[i]);
+				}
+			} else if (scene.showPressure){
+				minP = f.p[0];
+				maxP = f.p[0];
+				for (var i = 0; i < f.numCells; i++) {
+					minP = Math.min(minP, f.p[i]);
+					maxP = Math.max(maxP, f.p[i]);
+				}
+			} else if (scene.showSpeed){
+				var maxSpeed = 0;
+				for (var i = 0; i < f.numCells; i++) {
+					maxSpeed = Math.max(maxSpeed, Math.sqrt(f.u[i] * f.u[i] + f.v[i] * f.v[i]));
+				}
 			}
 
 			id = c.getImageData(0,0, canvas.width, canvas.height)
@@ -469,18 +495,13 @@ Simone Cimolato, Thomas Reilly
 						var p = f.p[i*n + j];
 						var s = f.m[i*n + j];
 						color = getSciColor(p, minP, maxP);
-						if (scene.showSmoke) {
-							color[0] = Math.max(0.0, color[0] - 255*s);
-							color[1] = Math.max(0.0, color[1] - 255*s);
-							color[2] = Math.max(0.0, color[2] - 255*s);
-						}
 					}
 					else if (scene.showCurl) {
 						var curlTemp = f.curl[i*n + j];
 						var s = f.m[i*n + j];
 						color = getSciColor(curlTemp, minCurl, maxCurl);
 					}
-					else if (scene.showSmoke) {
+					else if (scene.showSpeed) {
 						var speed = Math.sqrt(f.u[i*n + j] * f.u[i*n + j] + f.v[i*n + j] * f.v[i*n + j]);
 						var speedNorm = speed / (speedShift * maxSpeed);
 						color[0] = 255 * speedNorm;
@@ -499,7 +520,6 @@ Simone Cimolato, Thomas Reilly
 
 					for (var yi = y; yi < y + cy; yi++) {
 						var p = 4 * (yi * canvas.width + x)
-
 						for (var xi = 0; xi < cx; xi++) {
 							id.data[p++] = r;
 							id.data[p++] = g;
@@ -531,14 +551,6 @@ Simone Cimolato, Thomas Reilly
 				c.closePath();
 				c.stroke();
 				c.lineWidth = 0.5;
-			}
-
-			// printing min and max pressure values
-			if (scene.showPressure) {
-				var s = "pressure: " + minP.toFixed(0) + " - " + maxP.toFixed(0) + " N/m";
-				c.fillStyle ="#000000";
-				c.font = "16px Arial";
-				c.fillText(s, 10, 35);
 			}
 		}
 
@@ -615,6 +627,16 @@ Simone Cimolato, Thomas Reilly
 		
 		setupScene();
 		update();
-	</script> 
+	</script>
+	<div class="button-container">
+		<input type="radio" name="option" id="option1" onclick="scene.showCurl = false; scene.showSpeed = true; scene.showPressure = false" checked>
+		<label for="option1">Speed</label>
+	  
+		<input type="radio" name="option" id="option2" onclick="scene.showCurl = false; scene.showSpeed = false; scene.showPressure = true">
+		<label for="option2">Pressure</label>
+	  
+		<input type="radio" name="option" id="option3" onclick="scene.showCurl = true; scene.showSpeed = false; scene.showPressure = false">
+		<label for="option3">Curl</label>
+	  </div> 
 </body>
 </html>
