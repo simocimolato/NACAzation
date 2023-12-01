@@ -10,11 +10,6 @@ Simone Cimolato, Thomas Reilly
 	<head>
 		<title>NACAzation</title>
 		<style>
-			body {
-				font-family: Calibri; 
-				font-size: 15px;
-			}	
-
 			#CX {
 				font-size: 26px; 	/* Adjust the font size as needed */
 				color: #333; 	   /* Set the text color */
@@ -25,7 +20,9 @@ Simone Cimolato, Thomas Reilly
 			}
 
 			.button-container {
-				display: flex;
+				width: 50%;
+				float:left;
+				margin-top: 1%;
 			}
 
 			input[type="radio"] {
@@ -45,6 +42,12 @@ Simone Cimolato, Thomas Reilly
 				background-color: #3498db;
 				color: #fff;
 			}
+			
+			#pauseStep {
+				float: right;
+				margin-right: 18.5%;
+				margin-top: 1%;
+			}	
 		</style>
 	</head>
 <body>
@@ -411,6 +414,51 @@ Simone Cimolato, Thomas Reilly
 		// draw -------------------------------------------------------
 
 		// inputs are values from 0 to 1 of r g and b and it returns floored 0 - 255 values
+		function updateScene(option) {
+			switch (option) {
+				case 'speed':
+					scene.showCurl = false;
+					scene.showSpeed = true;
+					scene.showPressure = false;
+					break;
+				case 'pressure':
+					scene.showCurl = false;
+					scene.showSpeed = false;
+					scene.showPressure = true;
+					break;
+				case 'curl':
+					scene.showCurl = true;
+					scene.showSpeed = false;
+					scene.showPressure = false;
+					break;
+				case 'pause':
+					scene.paused = !scene.paused;
+					break;
+				case 'step':
+					scene.paused = false;
+					simulate();
+					scene.paused = true;
+					break;
+				default:
+					break;
+			}
+			updateButtonStyles();
+    	}
+
+		function updateButtonStyles() {
+			const buttons = document.querySelectorAll('input[type="radio"]');
+			buttons.forEach(button => {
+				const label = button.nextElementSibling;
+				if (button.checked) {
+					label.style.backgroundColor = '#3498db';
+					label.style.color = '#fff';
+				} else {
+					label.style.backgroundColor = '#fff';
+					label.style.color = '#000';
+				}
+			});
+		}
+
 		function getSciColor(val, minVal, maxVal) {
 			val = Math.min(Math.max(val, minVal), maxVal- 0.0001);
 			var d = maxVal - minVal;
@@ -585,29 +633,6 @@ Simone Cimolato, Thomas Reilly
 			scene.showObstacle = true;
 		}
 
-		// interaction -------------------------------------------------------
-		document.addEventListener('keydown', event => {
-			switch(event.key) {
-				case ' ': 
-					scene.paused = !scene.paused; 
-					break;
-				case 'm': 
-				scene.paused = false; 
-				simulate(); 
-				scene.paused = true; 
-				break;
-			}
-		});
-
-		function toggleStart(){
-			var button = document.getElementById('startButton');
-			if (scene.paused)
-				button.innerHTML = "Stop";
-			else
-				button.innerHTML = "Start";
-			scene.paused = !scene.paused;
-		}
-
 		// main -------------------------------------------------------
 		function simulate() {
 			if (!scene.paused)
@@ -625,14 +650,22 @@ Simone Cimolato, Thomas Reilly
 		update();
 	</script>
 	<div class="button-container">
-		<input type="radio" name="option" id="option1" onclick="scene.showCurl = false; scene.showSpeed = true; scene.showPressure = false" checked>
-		<label for="option1">Speed</label>
+		<input type="radio" id="speed" name="visualization" onclick="updateScene('speed')" checked>
+		<label for="speed">Speed</label>
 	  
-		<input type="radio" name="option" id="option2" onclick="scene.showCurl = false; scene.showSpeed = false; scene.showPressure = true">
-		<label for="option2">Pressure</label>
+		<input type="radio" id="pressure" name="visualization" onclick="updateScene('pressure')">
+		<label for="pressure">Pressure</label>
 	  
-		<input type="radio" name="option" id="option3" onclick="scene.showCurl = true; scene.showSpeed = false; scene.showPressure = false">
-		<label for="option3">Curl</label>
-	  </div> 
+		<input type="radio" id="curl" name="visualization" onclick="updateScene('curl')">
+		<label for="curl">Curl</label>
+	</div> 
+
+	<div id="pauseStep" >
+		<input type="radio" id="pause" name="super" onclick="scene.paused = !scene.paused;" checked>
+		<label for="pause">Pause</label>
+
+		<input type="radio" id="step" name="super" onclick="scene.paused = false; simulate(); scene.paused = true">
+		<label for="step">Step</label>
+	</div>
 </body>
 </html>
