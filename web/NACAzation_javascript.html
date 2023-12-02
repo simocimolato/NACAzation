@@ -43,11 +43,19 @@ Simone Cimolato, Thomas Reilly
 				color: #fff;
 			}
 			
-			#pauseStep {
+			.pauseStep {
 				float: right;
 				margin-right: 18.5%;
 				margin-top: 1%;
 			}	
+
+			#pause {
+				display: none;
+			}
+
+			#step {
+				display: none;
+			}
 		</style>
 	</head>
 <body>
@@ -434,11 +442,6 @@ Simone Cimolato, Thomas Reilly
 				case 'pause':
 					scene.paused = !scene.paused;
 					break;
-				case 'step':
-					scene.paused = false;
-					simulate();
-					scene.paused = true;
-					break;
 				default:
 					break;
 			}
@@ -457,6 +460,44 @@ Simone Cimolato, Thomas Reilly
 					label.style.color = '#000';
 				}
 			});
+		}
+
+		function updatePauseButtonStyle() {
+			var button = document.getElementById('pause');
+			var label = button.nextElementSibling;
+			if (scene.paused) {
+				label.style.backgroundColor = '#3498db';
+				label.style.color = '#fff';
+				label.textContent = "Paused";
+			} else {
+				label.style.backgroundColor = '#fff';
+				label.style.color = '#000';
+				label.textContent = "Pause";
+			}
+		}
+
+		function updateStepButtonStyle() {
+			/*var stepButton = document.getElementById('step');
+			button.addEventListener('mousedown', function(){
+				var label = button.nextElementSibling;
+				label.style.backgroundColor = '#3498db';
+				label.style.color = '#fff';
+			});
+
+			button.addEventListener('mouseup', function(){
+				var label = button.nextElementSibling;
+				label.style.backgroundColor = '#fff';
+				label.style.color = '#000';
+			});
+			stepButton.addEventListener('mousedown', function() {
+				stepButton.classList.add('active');
+				});
+
+				stepButton.addEventListener('mouseup', function() {
+				stepButton.classList.remove('active');
+				});*/
+
+				// temporary function to change the background only while being clicked
 		}
 
 		function getSciColor(val, minVal, maxVal) {
@@ -660,11 +701,11 @@ Simone Cimolato, Thomas Reilly
 		<label for="curl">Curl</label>
 	</div> 
 
-	<div id="pauseStep" >
-		<input type="radio" id="pause" name="super" onclick="scene.paused = !scene.paused;" checked>
+	<div class="pauseStep" >
+		<input id="pause" name="super" onclick="scene.paused = !scene.paused; updatePauseButtonStyle();" checked>
 		<label for="pause">Pause</label>
 
-		<input type="radio" id="step" name="super" onclick="scene.paused = false; simulate(); scene.paused = true">
+		<input id="step" name="super" onclick="scene.paused = false; simulate(); scene.paused = true; updateStepButtonStyle()">
 		<label for="step">Step</label>
 	</div>
 </body>
