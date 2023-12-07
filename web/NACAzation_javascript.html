@@ -115,6 +115,7 @@ Simone Cimolato, Thomas Reilly
 			- slider for angle of attack
 			- step button to turn on only while clicked 
 			- print on screen of drag/lift and CD/CL
+			- more efficient way of looping through cells to integrate pressure over surface
 		*/
 
 		var canvas = document.getElementById("simulation");
@@ -151,6 +152,7 @@ Simone Cimolato, Thomas Reilly
 			interval: 25,
 			xProportion: 0.02,
 			spacing: 10,
+			density: 1,
 		};
 
 		class Fluid {
@@ -159,17 +161,17 @@ Simone Cimolato, Thomas Reilly
 				this.numX = numX + 4; 
 				this.numY = numY + 2;
 				this.numCells = this.numX * this.numY;
-				this.h = h;									 // grid spacing
-				this.u = new Float32Array(this.numCells);	 // horizontal velocity
-				this.v = new Float32Array(this.numCells);	 // vertical velocity
+				this.h = h;											 // grid spacing
+				this.u = new Float32Array(this.numCells);			 // horizontal velocity
+				this.v = new Float32Array(this.numCells);			 // vertical velocity
 				this.newU = new Float32Array(this.numCells);
 				this.newV = new Float32Array(this.numCells);
-				this.p = new Float32Array(this.numCells);	 // pressure
-				this.s = new Float32Array(this.numCells);	 // keeps track of whether a cell is fluid (s_ij = 1) or wall/obstacle (s_ij = 0)
-				this.dyeDensity = new Float32Array(this.numCells);	 // object position
+				this.p = new Float32Array(this.numCells);			 // pressure
+				this.s = new Float32Array(this.numCells);	 		 // keeps track of whether a cell is fluid (s_ij = 1) or wall/obstacle (s_ij = 0)
+				this.dyeDensity = new Float32Array(this.numCells);	 // dye density
 				this.newDyeDensity = new Float32Array(this.numCells);
-				this.curl = new Float32Array(this.numCells); // curl
-				this.force = 0;								 // force exerted on the body by the fluid
+				this.curl = new Float32Array(this.numCells); 		 // curl
+				this.force = 0;								 		 // force exerted on the body by the fluid
 				this.p.fill(0.0);
 				this.curl.fill(0.0);
 				var num = numX * numY;
@@ -240,15 +242,17 @@ Simone Cimolato, Thomas Reilly
 						}
 					}
 				}
+
 				// CD & CL calculation and printing
 				scene.cx.push(Math.abs(2 * this.force / (this.density * scene.inVel * scene.inVel * 2 * scene.obstacleRadius))); // this shit is wrong, should be 100x less
 				if(scene.cx.length % scene.interval == 0){
 					// average of the last scene.interval elements
-					document.getElementById("CX").innerHTML = "CX: " + mean(scene.cx.slice(scene.cx.length - scene.interval)).toFixed(4);
+					document.getElementById("CX").innerHTML = "CX: " + mean(scene.cx).toFixed(4);
+					scene.cx = [];
 				}
 			}
 			
-			extrapolate() {
+			setBoundaryCond() {
 				var n = this.numY;
 				for (var i = 0; i < this.numX; i++) {
 					this.u[i*n] = this.u[i*n + 1];
@@ -395,7 +399,7 @@ Simone Cimolato, Thomas Reilly
 				this.curl.fill(0.0);
 				this.solveIncompressibility(numIters, dt);
 
-				this.extrapolate();
+				this.setBoundaryCond();
 				this.advectVel(dt);
 				this.advectDyeDensity(dt);
 			}
@@ -441,9 +445,8 @@ Simone Cimolato, Thomas Reilly
 
 			var numX = Math.floor(domainWidth / h);
 			var numY = Math.floor(scene.domainHeight / h);
-			density = 1;
 
-			f = scene.fluid = new Fluid(density, numX, numY, h);
+			f = scene.fluid = new Fluid(scene.density, numX, numY, h);
 			var n = f.numY;
 
 			// vortex shedding
