@@ -11,11 +11,11 @@ Simone Cimolato, Thomas Reilly
 		<title>NACAzation</title>
 		<style>
 			#CX {
-				font-size: 26px; 	/* Adjust the font size as needed */
-				color: #333; 	   /* Set the text color */
-				font-family: 'Arial', sans-serif; /* Set the font family */
-				margin-top: 10px;   /* Add some top margin for spacing */
-				margin-right: 60px; /* Add some top margin for spacing */
+				font-size: 26px;
+				color: #333;
+				font-family: 'Arial', sans-serif;
+				margin-top: 10px;
+				margin-right: 60px;
 				float: right;
 			}
 
@@ -59,18 +59,45 @@ Simone Cimolato, Thomas Reilly
 		</style>
 	</head>
 <body>
-	<canvas id="myCanvas" style="border:2px solid"></canvas>
+	<!-- inizio -->
+	<!--
+	<div id="input-section" style="float: right;">
+        <input type="number" id="inputNumber" min="1" value="1">
+        <button onclick="">Run Animation</button>
+    </div>-->
 	<div id = "CX">
 	</div>
+	<canvas id="simulation" style="border:2px solid;"></canvas>
+	<!-- fine -->
+	<div class="button-container">
+		<input type="radio" id="flow" name="visualization" onclick="updateScene('flow')" checked>
+		<label for="flow">Flow</label>
+	  
+		<input type="radio" id="pressure" name="visualization" onclick="updateScene('pressure')">
+		<label for="pressure">Pressure</label>
+	  
+		<input type="radio" id="curl" name="visualization" onclick="updateScene('curl')">
+		<label for="curl">Curl</label>
+	</div> 
+
+	<div class="pauseStep" >
+		<input id="pause" name="super" onclick="scene.paused = !scene.paused; updatePauseButtonStyle();" checked>
+		<label for="pause">Pause</label>
+
+		<input id="step" name="super" onclick="scene.paused = false; simulate(); scene.paused = true; updateStepButtonStyle()">
+		<label for="step">Step</label>
+	</div>
+
+	<!-- simulator -->
 	<script>
 		/*
 		Assumptions: 
-			- incompressible fluid
+			- incompressible fluid but compressible "dye" to visualize the flow
 			- inviscid fluid
 
 		Features:
 			- staggered grid (velcity field values u and v stored on grid edges)
-			- 2 steps:
+			- 3 steps:
 				1 applying incompressibility (projection)
 					- setting fluid divergence from each cell at 0:
 						- computing divergence d at each cell (in general not always = 0)
@@ -78,15 +105,19 @@ Simone Cimolato, Thomas Reilly
 						- velocities on walls/obstacles are set to be 0, the divergence is divided by the number of the remaining "free" velocities and subracted/added to them
 					- computing pressure in each cell using overrelaxation
 					- computing aerodynamic force by integrating pressure of the obstacle's surface, computing CL and CD
-				1 move the velocity field and density (semi-lagrangian advection)
+				2 move the velocity and dye density fields (semi-lagrangian advection)
+				3 draw
 
 		TODO:
 			- implement airfoils
 			- input interface for airfoil generation
+			- slider for streamline spacing
+			- slider for angle of attack
+			- step button to turn on only while clicked 
 			- print on screen of drag/lift and CD/CL
 		*/
 
-		var canvas = document.getElementById("myCanvas");
+		var canvas = document.getElementById("simulation");
 		var c = canvas.getContext("2d");	
 		canvas.width = window.innerWidth * 0.8;
 		canvas.height = window.innerHeight * 0.9;
@@ -105,7 +136,7 @@ Simone Cimolato, Thomas Reilly
 			paused: false,
 			showObstacle: true,
 			showPressure: false,
-			showSpeed: true,
+			showFlow: true,
 			showCurl: false,
 			fluid: null,
 			obstacleRadius: 0.10,
@@ -114,17 +145,19 @@ Simone Cimolato, Thomas Reilly
 			overRelaxation: 1.9, // should be between 1 and 2
 			dt: 1.0 / 60.0,
 			numIters: 50,
-			res: 105, // default is 100
+			res: 120, // default is 100
 			domainHeight: 1,
 			cx: [],
 			interval: 25,
+			xProportion: 0.02,
+			spacing: 10,
 		};
 
 		class Fluid {
 			constructor(density, numX, numY, h) {
 				this.density = density;
-				this.numX = numX + 3; 
-				this.numY = numY + 3;
+				this.numX = numX + 4; 
+				this.numY = numY + 2;
 				this.numCells = this.numX * this.numY;
 				this.h = h;									 // grid spacing
 				this.u = new Float32Array(this.numCells);	 // horizontal velocity
@@ -133,14 +166,20 @@ Simone Cimolato, Thomas Reilly
 				this.newV = new Float32Array(this.numCells);
 				this.p = new Float32Array(this.numCells);	 // pressure
 				this.s = new Float32Array(this.numCells);	 // keeps track of whether a cell is fluid (s_ij = 1) or wall/obstacle (s_ij = 0)
-				this.m = new Float32Array(this.numCells);	 // object position
-				this.newM = new Float32Array(this.numCells);
+				this.dyeDensity = new Float32Array(this.numCells);	 // object position
+				this.newDyeDensity = new Float32Array(this.numCells);
 				this.curl = new Float32Array(this.numCells); // curl
 				this.force = 0;								 // force exerted on the body by the fluid
-				this.m.fill(0);
 				this.p.fill(0.0);
 				this.curl.fill(0.0);
 				var num = numX * numY;
+
+				// streamlines from the left side
+				for (var i = 1; i < this.numX -1; i++) {
+					for (var j = 1; j < this.numY -1; j += scene.spacing) {
+						this.dyeDensity[i*this.numY + j] = 1;
+					}
+				}
 			}
 
 			solveIncompressibility(numIters, dt) {
@@ -242,7 +281,7 @@ Simone Cimolato, Thomas Reilly
 					case V_FIELD: f = this.v; 
 						dx = h2; 
 						break;
-					case S_FIELD: f = this.m; 
+					case S_FIELD: f = this.dyeDensity; 
 						dx = h2; 
 						dy = h2; 
 						break
@@ -320,9 +359,9 @@ Simone Cimolato, Thomas Reilly
 				this.v.set(this.newV);
 			}
 
-			// This function is specifically designed for advecting a scalar field representing smoke density within the fluid simulation.
-			advectSmoke(dt) {
-				this.newM.set(this.m);
+			// This function is specifically designed for advecting a scalar field representing dye density within the fluid simulation.
+			advectDyeDensity(dt) {
+				this.newDyeDensity.set(this.dyeDensity);
 
 				var n = this.numY;
 				var h = this.h;
@@ -331,17 +370,24 @@ Simone Cimolato, Thomas Reilly
 				for (var i = 1; i < this.numX-1; i++) {
 					for (var j = 1; j < this.numY-1; j++) {
 
-						if (this.s[i*n + j] != 0.0) {
+						//if (this.s[i*n + j] != 0.0) {
 							var u = (this.u[i*n + j] + this.u[(i+1)*n + j]) * 0.5;
 							var v = (this.v[i*n + j] + this.v[i*n + j+1]) * 0.5;
 							var x = i*h + h2 - dt*u;
 							var y = j*h + h2 - dt*v;
 
-							this.newM[i*n + j] = this.sampleField(x,y, S_FIELD);
-						}
+							this.newDyeDensity[i*n + j] = this.sampleField(x,y, S_FIELD);
+						//}
 					}	 
 				}
-				this.m.set(this.newM);
+				this.dyeDensity.set(this.newDyeDensity);
+
+				// streamlines from the left side
+				for (var i = 1; i < this.numX * scene.xProportion; i++) {
+					for (var j = 1; j < this.numY-1; j += scene.spacing) {
+						this.dyeDensity[i*this.numY + j] = 1;
+					}
+				}
 			}
 
 			simulate(dt, numIters) {
@@ -351,7 +397,7 @@ Simone Cimolato, Thomas Reilly
 
 				this.extrapolate();
 				this.advectVel(dt);
-				this.advectSmoke(dt);
+				this.advectDyeDensity(dt);
 			}
 		}
 		
@@ -412,11 +458,33 @@ Simone Cimolato, Thomas Reilly
 				}
 			}
 
-			// initializing the flow
-			for (var j = 0; j < f.numY; j++)
-				f.m[j] = 0;
+			setObstacle(scene.setObstacleX, scene.setObstacleY)
+		}
 
-			setObstacle(scene.setObstacleX, scene.setObstacleY, true)
+		function setObstacle(x, y) {
+			scene.obstacleX = x;
+			scene.obstacleY = y;
+			var r = scene.obstacleRadius;
+			var f = scene.fluid;
+			var n = f.numY;
+
+			for (var i = 1; i < f.numX; i++) {
+				for (var j = 1; j < f.numY-2; j++) {
+					f.s[i*n + j] = 1.0;
+
+					dx = (i + 0.5) * f.h - x;
+					dy = (j + 0.5) * f.h - y;
+
+					if (dx * dx + dy * dy < r * r) {
+						f.s[i*n + j] = 0.0;
+						f.u[i*n + j] = 0.0;
+						f.u[(i+1)*n + j] = 0.0;
+						f.v[i*n + j] = 0.0;
+						f.v[i*n + j+1] = 0.0;
+					}
+				}
+			}
+			scene.showObstacle = true;
 		}
 
 		// draw -------------------------------------------------------
@@ -424,19 +492,19 @@ Simone Cimolato, Thomas Reilly
 		// inputs are values from 0 to 1 of r g and b and it returns floored 0 - 255 values
 		function updateScene(option) {
 			switch (option) {
-				case 'speed':
+				case 'flow':
 					scene.showCurl = false;
-					scene.showSpeed = true;
+					scene.showFlow = true;
 					scene.showPressure = false;
 					break;
 				case 'pressure':
 					scene.showCurl = false;
-					scene.showSpeed = false;
+					scene.showFlow = false;
 					scene.showPressure = true;
 					break;
 				case 'curl':
 					scene.showCurl = true;
-					scene.showSpeed = false;
+					scene.showFlow = false;
 					scene.showPressure = false;
 					break;
 				case 'pause':
@@ -562,36 +630,27 @@ Simone Cimolato, Thomas Reilly
 					minP = Math.min(minP, f.p[i]);
 					maxP = Math.max(maxP, f.p[i]);
 				}
-			} else if (scene.showSpeed){
-				var maxSpeed = 0;
-				for (var i = 0; i < f.numCells; i++) {
-					maxSpeed = Math.max(maxSpeed, Math.sqrt(f.u[i] * f.u[i] + f.v[i] * f.v[i]));
-				}
 			}
 
 			id = c.getImageData(0,0, canvas.width, canvas.height)
 
 			var color = [255, 255, 255, 255]
-			var speedShift = 1.25;
 
 			for (var i = 0; i < f.numX; i++) {
 				for (var j = 0; j < f.numY; j++) {
 					if (scene.showPressure) {
 						var p = f.p[i*n + j];
-						var s = f.m[i*n + j];
 						color = getSciColor(p, minP, maxP);
 					}
 					else if (scene.showCurl) {
 						var curlTemp = f.curl[i*n + j];
-						var s = f.m[i*n + j];
 						color = getSciColor(curlTemp, minCurl, maxCurl);
 					}
-					else if (scene.showSpeed) {
-						var speed = Math.sqrt(f.u[i*n + j] * f.u[i*n + j] + f.v[i*n + j] * f.v[i*n + j]);
-						var speedNorm = speed / (speedShift * maxSpeed);
-						color[0] = 255 * speedNorm;
-						color[1] = 255 * speedNorm;
-						color[2] = 255 * speedNorm;
+					else if (scene.showFlow) {
+						var s = f.dyeDensity[i*n + j];
+						color[0] = 255 * s;
+						color[1] = 255 * s;
+						color[2] = 255 * s;
 					}
 
 					var x = Math.floor(cX(i * h));
@@ -639,41 +698,6 @@ Simone Cimolato, Thomas Reilly
 			}
 		}
 
-		function setObstacle(x, y, reset) {
-			var vx = 0.0;
-			var vy = 0.0;
-
-			if (!reset) {
-				vx = (x - scene.obstacleX) / scene.dt;
-				vy = (y - scene.obstacleY) / scene.dt;
-			}
-
-			scene.obstacleX = x;
-			scene.obstacleY = y;
-			var r = scene.obstacleRadius;
-			var f = scene.fluid;
-			var n = f.numY;
-
-			for (var i = 1; i < f.numX; i++) {
-				for (var j = 1; j < f.numY-2; j++) {
-					f.s[i*n + j] = 1.0;
-
-					dx = (i + 0.5) * f.h - x;
-					dy = (j + 0.5) * f.h - y;
-
-					if (dx * dx + dy * dy < r * r) {
-						f.s[i*n + j] = 0.0;
-						f.m[i*n + j] = 1.0;
-						f.u[i*n + j] = vx;
-						f.u[(i+1)*n + j] = vx;
-						f.v[i*n + j] = vy;
-						f.v[i*n + j+1] = vy;
-					}
-				}
-			}
-			scene.showObstacle = true;
-		}
-
 		// main -------------------------------------------------------
 		function simulate() {
 			if (!scene.paused)
@@ -690,23 +714,5 @@ Simone Cimolato, Thomas Reilly
 		setupScene();
 		update();
 	</script>
-	<div class="button-container">
-		<input type="radio" id="speed" name="visualization" onclick="updateScene('speed')" checked>
-		<label for="speed">Speed</label>
-	  
-		<input type="radio" id="pressure" name="visualization" onclick="updateScene('pressure')">
-		<label for="pressure">Pressure</label>
-	  
-		<input type="radio" id="curl" name="visualization" onclick="updateScene('curl')">
-		<label for="curl">Curl</label>
-	</div> 
-
-	<div class="pauseStep" >
-		<input id="pause" name="super" onclick="scene.paused = !scene.paused; updatePauseButtonStyle();" checked>
-		<label for="pause">Pause</label>
-
-		<input id="step" name="super" onclick="scene.paused = false; simulate(); scene.paused = true; updateStepButtonStyle()">
-		<label for="step">Step</label>
-	</div>
 </body>
 </html>
