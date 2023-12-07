@@ -115,7 +115,9 @@ Simone Cimolato, Thomas Reilly
 			- slider for angle of attack
 			- step button to turn on only while clicked 
 			- print on screen of drag/lift and CD/CL
+			- fix CD/CL computation
 			- more efficient way of looping through cells to integrate pressure over surface
+			- CD/CL updating frequency slider
 		*/
 
 		var canvas = document.getElementById("simulation");
@@ -140,13 +142,13 @@ Simone Cimolato, Thomas Reilly
 			showFlow: true,
 			showCurl: false,
 			fluid: null,
-			obstacleRadius: 0.10,
+			obstacleRadius: 0.1,
 			setObstacleX: 0.5,
 			setObstacleY: 0.4,
 			overRelaxation: 1.9, // should be between 1 and 2
 			dt: 1.0 / 60.0,
 			numIters: 50,
-			res: 120, // default is 100
+			res: 120, // default is 120
 			domainHeight: 1,
 			cx: [],
 			interval: 25,
