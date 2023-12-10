@@ -10,13 +10,8 @@ Simone Cimolato, Thomas Reilly
 	<head>
 		<title>NACAzation</title>
 		<style>
-			#CX {
-				font-size: 26px;
-				color: #333;
-				font-family: 'Arial', sans-serif;
-				margin-top: 10px;
-				margin-right: 60px;
-				float: right;
+			body {
+				font-family: 'Arial', sans-serif;;
 			}
 
 			.button-container {
@@ -32,20 +27,21 @@ Simone Cimolato, Thomas Reilly
 			label {
 				cursor: pointer;
 				padding: 8px 16px;
-				border: 1px solid #ccc;
+				border: 1px solid #f0f0f0;
+				background-color: #f0f0f0;
+				color: #000;
 				margin-right: 5px;
-				font-family: 'Arial', sans-serif;
 				border-radius: 10px; /* Rounded corners */
 			}
 
-			input[type="radio"]:checked + label {
+			input[type="radio"]:checked+ label {
 				background-color: #3498db;
-				color: #fff;
+				color: #f0f0f0;
 			}
-			
+
 			.pauseStep {
 				float: right;
-				margin-right: 18.5%;
+				margin-right: 19%;
 				margin-top: 1%;
 			}	
 
@@ -56,19 +52,73 @@ Simone Cimolato, Thomas Reilly
 			#step {
 				display: none;
 			}
+
+			#input-section {
+				width: 19%;
+				box-sizing: border-box;
+				padding: 20px;
+				background-color: #f0f0f0;
+				float: right;
+			}
+
+			#inputCamber, #inputPosition, #inputThickness {
+				width: 90%;
+				margin-top: 3%;
+				margin-bottom: 5%;
+			}
+			
+			#simulation {
+				border: 4px solid #3498db;
+				flex: 1;
+      			width: 80%;
+      			position: relative;
+			}
+
+			#foil {
+				cursor: pointer;
+				padding: 8px 16px;
+				border: 1px solid #6a6a6a;
+				background-color: #3498db;
+				border-radius: 10px; /* Rounded corners */
+				margin-left: 30%;
+				color: #f0f0f0;
+			}
+
+			#CX {
+				font-size: 26px;
+				color: #333;
+				margin-top: 20%;
+				float: left;
+			}
+
+			#input-container{
+				margin-left: 5%;
+			}
 		</style>
 	</head>
 <body>
-	<!-- inizio -->
-	<!--
-	<div id="input-section" style="float: right;">
-        <input type="number" id="inputNumber" min="1" value="1">
-        <button onclick="">Run Animation</button>
-    </div>-->
-	<div id = "CX">
-	</div>
-	<canvas id="simulation" style="border:2px solid;"></canvas>
-	<!-- fine -->
+	
+	<div id="input-section">
+		<div id="input-container">
+			<div style="text-align: center;"><b>NACAzation!</b> <br/> <br/></div>
+			Camber: <span id="camberValue" style="float: right; margin-right: 10%;">0 %</span>
+			<input type="range" id="inputCamber" min="0" max="95" value="0" oninput="updateSlider()">
+
+			Camber peak pos: <span id="positionValue" style="float: right; margin-right: 10%;"> 1 %</span>
+			<input type="range" id="inputPosition" min="0" max="90" value="1" oninput="updateSlider()">
+
+			Thickness: <span id="thicknessValue" style="float: right; margin-right: 10%;"> 1 %</span>
+			<input type="range" id="inputThickness" min="1" max="40" value="1" style="margin-bottom: 20%;" oninput="updateSlider()">
+			
+			<input type="radio" id="foil" onclick="updateFoil()" style="display: none;">
+			<label id="foil">FLY!</label>
+
+			<div id = "CX"></div>
+		</div>
+    </div>
+
+	<canvas id="simulation"></canvas>
+
 	<div class="button-container">
 		<input type="radio" id="flow" name="visualization" onclick="updateScene('flow')" checked>
 		<label for="flow">Flow</label>
@@ -118,12 +168,13 @@ Simone Cimolato, Thomas Reilly
 			- fix CD/CL computation
 			- more efficient way of looping through cells to integrate pressure over surface
 			- CD/CL updating frequency slider
+			- cleaning CSS and grouping functinos in javascript
 		*/
 
 		var canvas = document.getElementById("simulation");
 		var c = canvas.getContext("2d");	
-		canvas.width = window.innerWidth * 0.8;
-		canvas.height = window.innerHeight * 0.9;
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight * 1.15;
 
 		canvas.focus();
 
@@ -133,7 +184,7 @@ Simone Cimolato, Thomas Reilly
 
 		var U_FIELD = 0;
 		var V_FIELD = 1;
-		var S_FIELD = 2;
+		var DYE_FIELD = 2;
 
 		var scene = {
 			paused: false,
@@ -142,13 +193,13 @@ Simone Cimolato, Thomas Reilly
 			showFlow: true,
 			showCurl: false,
 			fluid: null,
+			res: 120, // default is 120
 			obstacleRadius: 0.1,
 			setObstacleX: 0.5,
 			setObstacleY: 0.4,
 			overRelaxation: 1.9, // should be between 1 and 2
 			dt: 1.0 / 60.0,
 			numIters: 50,
-			res: 120, // default is 120
 			domainHeight: 1,
 			cx: [],
 			interval: 25,
@@ -177,13 +228,8 @@ Simone Cimolato, Thomas Reilly
 				this.p.fill(0.0);
 				this.curl.fill(0.0);
 				var num = numX * numY;
-
-				// streamlines from the left side
-				for (var i = 1; i < this.numX -1; i++) {
-					for (var j = 1; j < this.numY -1; j += scene.spacing) {
-						this.dyeDensity[i*this.numY + j] = 1;
-					}
-				}
+				this.maxP = 0;
+				this.minP = 0;
 			}
 
 			solveIncompressibility(numIters, dt) {
@@ -224,6 +270,8 @@ Simone Cimolato, Thomas Reilly
 
 				// calculating the pressure
 				this.force = 0;
+				var avgP = mean(this.p);//0.5 * (this.maxP + this.minP);
+
 				for (var i = 1; i < this.numX-1; i++) {
 					for (var j = 1; j < this.numY-1; j++) {
 						if (this.s[i*n + j] == 0.0)
@@ -240,14 +288,14 @@ Simone Cimolato, Thomas Reilly
 								continue;
 
 						if (s < 4 && i > 5 && i <this.numX-15 && j>5 && j <this.numY-15){ // temporary condition
-							this.force += this.p[i*n + j];
+							this.force += this.p[i*n + j] - avgP;
 						}
 					}
 				}
 
 				// CD & CL calculation and printing
 				scene.cx.push(Math.abs(2 * this.force / (this.density * scene.inVel * scene.inVel * 2 * scene.obstacleRadius))); // this shit is wrong, should be 100x less
-				if(scene.cx.length % scene.interval == 0){
+				if(scene.cx.length >= scene.interval){
 					// average of the last scene.interval elements
 					document.getElementById("CX").innerHTML = "CX: " + mean(scene.cx).toFixed(4);
 					scene.cx = [];
@@ -287,7 +335,7 @@ Simone Cimolato, Thomas Reilly
 					case V_FIELD: f = this.v; 
 						dx = h2; 
 						break;
-					case S_FIELD: f = this.dyeDensity; 
+					case DYE_FIELD: f = this.dyeDensity; 
 						dx = h2; 
 						dy = h2; 
 						break
@@ -382,7 +430,7 @@ Simone Cimolato, Thomas Reilly
 							var x = i*h + h2 - dt*u;
 							var y = j*h + h2 - dt*v;
 
-							this.newDyeDensity[i*n + j] = this.sampleField(x,y, S_FIELD);
+							this.newDyeDensity[i*n + j] = this.sampleField(x,y, DYE_FIELD);
 						//}
 					}	 
 				}
@@ -425,6 +473,11 @@ Simone Cimolato, Thomas Reilly
 			return array.reduce((sum, currentValue) => sum + currentValue, 0) / array.length;
 		}
 
+		function linspace(start, end, numPoints) {
+			const step = (end - start) / (numPoints - 1);
+			return Array.from({ length: numPoints }, (_, index) => start + index * step);
+		}
+
 		function calculateCurl(u, v, sizeX, sizeY) {
 			f = scene.fluid;
 			// Calculate the curl using finite differences
@@ -462,7 +515,6 @@ Simone Cimolato, Thomas Reilly
 					f.u[i*n + j] = scene.inVel;
 				}
 			}
-
 			setObstacle(scene.setObstacleX, scene.setObstacleY)
 		}
 
@@ -522,14 +574,14 @@ Simone Cimolato, Thomas Reilly
     	}
 
 		function updateButtonStyles() {
-			const buttons = document.querySelectorAll('input[type="radio"]');
+			const buttons = document.querySelectorAll('input[type="radio"]:not(#foil)');
 			buttons.forEach(button => {
 				const label = button.nextElementSibling;
 				if (button.checked) {
 					label.style.backgroundColor = '#3498db';
 					label.style.color = '#fff';
 				} else {
-					label.style.backgroundColor = '#fff';
+					label.style.backgroundColor = '#f0f0f0';
 					label.style.color = '#000';
 				}
 			});
@@ -543,7 +595,7 @@ Simone Cimolato, Thomas Reilly
 				label.style.color = '#fff';
 				label.textContent = "Paused";
 			} else {
-				label.style.backgroundColor = '#fff';
+				label.style.backgroundColor = '#f0f0f0';
 				label.style.color = '#000';
 				label.textContent = "Pause";
 			}
@@ -571,6 +623,98 @@ Simone Cimolato, Thomas Reilly
 				});*/
 
 				// temporary function to change the background only while being clicked
+		}
+
+        function updateSlider() {
+            var rangeInput = document.getElementById("inputCamber").value / 10;
+            var displayValue = document.getElementById("camberValue");
+            displayValue.innerText = rangeInput + " %";
+
+			var rangeInput = document.getElementById("inputPosition").value;
+			var displayValue = document.getElementById("positionValue");
+            displayValue.innerText = rangeInput + " %";
+
+			var rangeInput = document.getElementById("inputThickness").value;
+			var displayValue = document.getElementById("thicknessValue");
+            displayValue.innerText = rangeInput + " %";
+        }
+
+		function updateFoil() {
+            var camber = parseFloat(document.getElementById("inputCamber").value) / 1000;
+            var camberPos = parseFloat(document.getElementById("inputPosition").value) / 100;
+            var thickness = parseFloat(document.getElementById("inputThickness").value) / 100;
+
+			var x = linspace(0, Math.PI, 100);
+			x = x.map(x => (1 - Math.cos(x)) / 2);
+			
+			var yc_front = [];
+
+			// camber equations
+			if (camberPos != 0) {
+				yc_front = x.filter(x => x < camberPos).map(x => (camber / (camberPos ** 2)) * (2 * camberPos * x - x ** 2));
+			}
+
+			var yc_back = [];
+			for (var i = 0; i < x.length; i++) {
+				if (x[i] >= camberPos) {
+					yc_back.push((camber / (1 - camberPos) ** 2) * (1 - 2 * camberPos + 2 * camberPos * x[i] - x[i] ** 2));
+				}
+			}
+
+			var yc = yc_front.concat(yc_back);
+
+    		// Gradient equations
+			var dycdx_front = [];
+			if (camberPos !== 0) {
+				dycdx_front = x.filter(x => x < camberPos).map(x => (2 * camber / camberPos ** 2) * (camberPos - x));
+			}
+
+			dycdx_back = [];
+			for (var i = 0; i < x.length; i++) {
+				if (x[i] >= camberPos) {
+					dycdx_back.push((2 * camber / (1 - camberPos) ** 2) * (camberPos - x[i]));
+				}
+			}
+		
+			var dycdx = dycdx_front.concat(dycdx_back);
+
+			// Thickness distribution
+			var a0 = 0.2969
+			var a1 = -0.126
+			var a2 = -0.3516
+			var a3 = 0.2843
+			var a4 = -0.1036 // closed trailing edge, use -0.1015 for open trailing edge
+
+			var yt = [];
+			var theta = [];
+			var xu = [];
+			var yu = [];
+			var xl = [];
+			var yl = [];
+			var xfoil = [];
+			var yfoil = [];
+
+			for(var i = 0; i < dycdx.length; i++){
+				yt[i] = (thickness / 0.2) * (a0 * x[i] ** 0.5 + a1 * x[i] + a2 * x[i] ** 2 + a3 * x[i] ** 3 + a4 * x[i] ** 4);
+
+				// Calculate envelope positions perpendicular to camber line
+				theta[i] = Math.atan(dycdx[i]);
+
+				// Upper line
+				xu[i] = x[i] - yt[i] * Math.sin(theta[i]);
+				yu[i] = yc[i] + yt[i] * Math.cos(theta[i]);
+
+				// Lower line
+				xl[i] = x[i] + yt[i] * Math.sin(theta[i]);
+				yl[i] = yc[i] - yt[i] * Math.cos(theta[i]);
+			}
+
+			// Combine
+			xfoil = xl.concat(xu);
+			yfoil = yl.concat(yu);
+
+			// first row is x points, second row is y points
+			return [xfoil, yfoil]
 		}
 
 		function getSciColor(val, minVal, maxVal) {
@@ -629,13 +773,35 @@ Simone Cimolato, Thomas Reilly
 					maxCurl = Math.max(maxCurl, f.curl[i]);
 				}
 			} else if (scene.showPressure){
-				minP = f.p[0];
-				maxP = f.p[0];
+				var minP = f.p[0];
+				var maxP = f.p[0];
 				for (var i = 0; i < f.numCells; i++) {
 					minP = Math.min(minP, f.p[i]);
 					maxP = Math.max(maxP, f.p[i]);
 				}
+				f.minP = minP;
+				f.maxP = maxP;
 			}
+
+
+
+
+
+			
+			var minP = f.p[0];
+				var maxP = f.p[0];
+				for (var i = 0; i < f.numCells; i++) {
+					minP = Math.min(minP, f.p[i]);
+					maxP = Math.max(maxP, f.p[i]);
+				}
+				f.minP = minP;
+				f.maxP = maxP;
+
+
+
+
+
+
 
 			id = c.getImageData(0,0, canvas.width, canvas.height)
 
