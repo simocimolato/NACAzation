@@ -28,7 +28,7 @@ Simone Cimolato, Thomas Reilly
 				cursor: pointer;
 				padding: 8px 16px;
 				border: 1px solid #f0f0f0;
-				background-color: #f0f0f0;
+				background-color: #dbdbdb;
 				color: #000;
 				margin-right: 5px;
 				border-radius: 10px; /* Rounded corners */
@@ -74,7 +74,7 @@ Simone Cimolato, Thomas Reilly
       			position: relative;
 			}
 
-			#foil {
+			#foilLabel {
 				cursor: pointer;
 				padding: 8px 16px;
 				border: 1px solid #6a6a6a;
@@ -91,6 +91,13 @@ Simone Cimolato, Thomas Reilly
 				float: left;
 			}
 
+			#NACA {
+				font-size: 26px;
+				color: #09102e;
+				margin-top: 20%;
+				float: left;
+			}
+
 			#input-container{
 				margin-left: 5%;
 			}
@@ -101,17 +108,19 @@ Simone Cimolato, Thomas Reilly
 	<div id="input-section">
 		<div id="input-container">
 			<div style="text-align: center;"><b>NACAzation!</b> <br/> <br/></div>
-			Camber: <span id="camberValue" style="float: right; margin-right: 10%;">0 %</span>
-			<input type="range" id="inputCamber" min="0" max="95" value="0" oninput="updateSlider()">
+			Camber: <span id="camberValue" style="float: right; margin-right: 10%;"> 0 %</span>
+			<input type="range" id="inputCamber" min="0" max="9" value="0" step="1" oninput="updateSlider()">
 
-			Camber peak pos: <span id="positionValue" style="float: right; margin-right: 10%;"> 1 %</span>
-			<input type="range" id="inputPosition" min="0" max="90" value="1" oninput="updateSlider()">
+			Camber peak pos: <span id="positionValue" style="float: right; margin-right: 10%;"> 0 %</span>
+			<input type="range" id="inputPosition" min="0" max="90" value="0" step="10" oninput="updateSlider()">
 
 			Thickness: <span id="thicknessValue" style="float: right; margin-right: 10%;"> 1 %</span>
 			<input type="range" id="inputThickness" min="1" max="40" value="1" style="margin-bottom: 20%;" oninput="updateSlider()">
 			
 			<input type="radio" id="foil" onclick="updateFoil()" style="display: none;">
-			<label id="foil">FLY!</label>
+			<label for="foil" id="foilLabel">FLY!</label>
+
+			<div id = "NACA"></div>
 
 			<div id = "CX"></div>
 		</div>
@@ -206,6 +215,7 @@ Simone Cimolato, Thomas Reilly
 			xProportion: 0.02,
 			spacing: 10,
 			density: 1,
+			foilObstacle: false,
 		};
 
 		class Fluid {
@@ -626,7 +636,7 @@ Simone Cimolato, Thomas Reilly
 		}
 
         function updateSlider() {
-            var rangeInput = document.getElementById("inputCamber").value / 10;
+            var rangeInput = document.getElementById("inputCamber").value ;
             var displayValue = document.getElementById("camberValue");
             displayValue.innerText = rangeInput + " %";
 
@@ -640,9 +650,28 @@ Simone Cimolato, Thomas Reilly
         }
 
 		function updateFoil() {
-            var camber = parseFloat(document.getElementById("inputCamber").value) / 1000;
+            var camber = parseFloat(document.getElementById("inputCamber").value) / 100;
             var camberPos = parseFloat(document.getElementById("inputPosition").value) / 100;
             var thickness = parseFloat(document.getElementById("inputThickness").value) / 100;
+
+			if (camber == 0)
+				var camberStr = "0";
+			else
+				var camberStr = String(Math.floor(camber*100));
+			if (camberPos == 0)
+				var camberPosStr = "0";
+			else
+				var camberPosStr = String(Math.floor(camberPos*10));
+			if (thickness*100 < 10) {
+				var leadZero = "0";
+				var thicknessStr = leadZero.concat(String(Math.floor(thickness*100)))
+			}
+			else
+				var thicknessStr = String(Math.floor(thickness*100));
+
+			var NACAstring = camberStr.concat(camberPosStr.concat(thicknessStr));
+
+			document.getElementById("NACA").innerHTML = "NACA" + NACAstring;
 
 			var x = linspace(0, Math.PI, 100);
 			x = x.map(x => (1 - Math.cos(x)) / 2);
@@ -710,11 +739,80 @@ Simone Cimolato, Thomas Reilly
 			}
 
 			// Combine
-			xfoil = xl.concat(xu);
-			yfoil = yl.concat(yu);
+			// reverse the upper and lower to ease later transformation;
+			// this makes coordinates start at nose and go clockwise around the foil
+			xfoil = xu.concat(xl.reverse());
+			yfoil = yu.concat(yl.reverse());
+
+			// Tranform & scale xfoil and yfoil up to canvas size
+			var xoffset = 0.2;
+			var yoffset = 0.5;
+			var scaleFactor = 0.4;
+			
+			var xtran = xfoil;
+			var ytran = yfoil;
 
 			// first row is x points, second row is y points
-			return [xfoil, yfoil]
+			for(var i = 0; i < xfoil.length; i++){
+				xtran[i] = Math.floor(cX(xfoil[i] * scaleFactor + xoffset));
+				if (i > 99)
+					ytran[i] = Math.floor(cY(yfoil[i] * scaleFactor + yoffset));
+				else
+					ytran[i] = Math.ceil(cY(yfoil[i] * scaleFactor + yoffset));
+			}
+
+			setFoilObstacle(xtran, ytran);
+		}
+
+		function setFoilObstacle(x, y) {
+			scene.xfoilTRAN = x;
+			scene.yfoilTRAN = y;
+			var f = scene.fluid;
+			var n = f.numY;
+			var h = f.h;
+
+			// narrow down the search field based on max and min boundary points
+			// now for loop to check boundary only happens in the region close to the foil 
+			var xmin = Math.min(...x);
+			var xmax = Math.max(...x);
+			var ymin = Math.min(...y);
+			var ymax = Math.max(...y);
+
+			// need to separate back to upper & lower
+			// makes determining if inside or outside easier
+			// note that cY() switches upper and lower values (because -y)
+			var yl = y.slice(0,99);
+			var yu = y.slice(100,199).reverse();
+
+			for (var i = 1; i < f.numX; i++) {
+				for (var j = 1; j < f.numY-2; j++) {
+
+					f.s[i*n + j] = 1.0;
+
+					var xNow = Math.floor(cX(i * h));
+					var yTemp = cY((j+1) * h);
+					if (yTemp < (ymax+ymin)/2)
+						var yNow = Math.ceil(cY((j+1) * h));
+					else
+						var yNow = Math.floor(cY((j+1) * h));
+
+					if (xNow <= xmax && xNow >=xmin && yNow <= ymax && yNow >= ymin) {
+						var diffArr = x.map(temp => Math.abs(xNow - temp));
+						var minNumber = Math.min(...diffArr);
+						var index = diffArr.findIndex(temp => temp === minNumber);
+
+						if (yNow > yl[index] + 1 && yNow < yu[index] - 1) {
+							f.s[i*n + j] = 0.0;
+							f.u[i*n + j] = 0.0;
+							f.u[(i+1)*n + j] = 0.0;
+							f.v[i*n + j] = 0.0;
+							f.v[i*n + j+1] = 0.0;
+						}
+					}
+				}
+			}
+			scene.foilObstacle = true;
+			scene.showObstacle = true;
 		}
 
 		function getSciColor(val, minVal, maxVal) {
@@ -782,11 +880,6 @@ Simone Cimolato, Thomas Reilly
 				f.minP = minP;
 				f.maxP = maxP;
 			}
-
-
-
-
-
 			
 			var minP = f.p[0];
 				var maxP = f.p[0];
@@ -796,11 +889,6 @@ Simone Cimolato, Thomas Reilly
 				}
 				f.minP = minP;
 				f.maxP = maxP;
-
-
-
-
-
 
 
 			id = c.getImageData(0,0, canvas.width, canvas.height)
@@ -848,24 +936,38 @@ Simone Cimolato, Thomas Reilly
 			c.putImageData(id, 0, 0);
 
 			if (scene.showObstacle) {
-				c.strokeW
-				r = scene.obstacleRadius + f.h;
 				if (scene.showPressure)
 					c.fillStyle = "#000000";
 				else
 					c.fillStyle = "#DDDDDD";
-				c.beginPath();	
-				c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
-				c.closePath();
-				c.fill();
+				if (scene.foilObstacle) {
+					c.lineWidth = 1.0;
+					c.strokeStyle = "#000000";
+					c.beginPath();
+					c.moveTo(scene.xfoilTRAN[0],scene.yfoilTRAN[0]);
+					for(var i = 1; i < scene.xfoilTRAN.length; i++) {
+						c.lineTo(scene.xfoilTRAN[i],scene.yfoilTRAN[i]);
+						c.stroke();
+					}
+					c.closePath();
+					c.fill();
+				}
+				else {
+					r = scene.obstacleRadius + f.h;
 
-				c.lineWidth = 1.0;
-				c.strokeStyle = "#000000";
-				c.beginPath();	
-				c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
-				c.closePath();
-				c.stroke();
-				c.lineWidth = 0.5;
+					c.beginPath();	
+					c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
+					c.closePath();
+					c.fill();
+
+					c.lineWidth = 1.0;
+					c.strokeStyle = "#000000";
+					c.beginPath();	
+					c.arc(cX(scene.obstacleX), cY(scene.obstacleY), cScale * r, 0.0, 2.0 * Math.PI); 
+					c.closePath();
+					c.stroke();
+					c.lineWidth = 0.5;
+				}
 			}
 		}
 
