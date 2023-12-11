@@ -86,9 +86,11 @@ Simone Cimolato, Thomas Reilly
 
 			#CX {
 				font-size: 26px;
-				color: #333;
+				color: #09102e;
 				margin-top: 20%;
 				float: left;
+				text-align: center;
+				padding-top: 5px;
 			}
 
 			#NACA {
@@ -96,10 +98,20 @@ Simone Cimolato, Thomas Reilly
 				color: #09102e;
 				margin-top: 20%;
 				float: left;
+				text-align: center;
+				padding-top: 5px;
 			}
 
 			#input-container{
 				margin-left: 5%;
+			}
+			#backHome {
+				font-size: 18px;
+				color: blue;
+				margin-top: 20%;
+				float: left;
+				text-align: center;
+				padding-top: 5px;
 			}
 		</style>
 	</head>
@@ -120,9 +132,11 @@ Simone Cimolato, Thomas Reilly
 			<input type="radio" id="foil" onclick="updateFoil()" style="display: none;">
 			<label for="foil" id="foilLabel">FLY!</label>
 
-			<div id = "NACA"></div>
+			<div id = "NACA">NACA........</div>
 
-			<div id = "CX"></div>
+			<div id = "CX">CX: ..............</div>
+
+			<div id = "backHome"><a href="FinalReport.html">Back to Home</a></div>
 		</div>
     </div>
 
@@ -146,6 +160,7 @@ Simone Cimolato, Thomas Reilly
 		<input id="step" name="super" onclick="scene.paused = false; simulate(); scene.paused = true; updateStepButtonStyle()">
 		<label for="step">Step</label>
 	</div>
+
 
 	<!-- simulator -->
 	<script>

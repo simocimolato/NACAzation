@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Airfoil Generator Code</title>
+<style type="text/css">
+	body {
+		margin:0;
+		padding:0;
+		font-family: Sans-Serif;
+		line-height: 1.5em;
+	}
+	#header {
+		background: #999999;
+		height: 100px;
+	}
+	#header h1 {
+		margin: 0;
+		padding-top: 15px;
+	}
+    #header h3 {
+        padding-bottom: 5px;
+    }
+	main {
+		padding-bottom: 10010px;
+		margin-bottom: -10000px;
+		float: left;
+		width: 100%;
+	}
+	#nav {
+		padding-bottom: 10010px;
+		margin-bottom: -10000px;
+        padding-left: 10px;
+		padding-top: 10px;
+		float: left;
+		width: 230px;
+		margin-left: -100%;
+		background: #aaaaaa;
+	}
+	#footer {
+		clear: left;
+		width: 100%;
+		background: #999999;
+		text-align: center;
+		padding: 4px 0;
+	}
+	#wrapper {
+		overflow: hidden;
+	}			
+	#content {
+		margin-left: 230px; /* Same as 'nav' width */
+	}
+	.inside {
+		margin: 15px;
+		margin-top: 0;
+		padding-left: 10px;
+	}
+	p {
+		color: #303030;
+	}
+	nav ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+	nav ul a {
+		color: darkblue;
+		text-decoration: none;
+	}
+    img {
+        height: 100px;
+        width: 600px;
+    	object-fit: scale-down;
+		vertical-align: center;
+	}
+	figcaption {
+		font-style: italic;
+		font-size: 12px;
+	}
+    figure {
+       margin: none;
+       padding: none;
+    }
+</style>
+</head>
+
+<body>		
+
+	<header id="header">
+		<div class="inside">
+			<h1>NACAzation: Analysis of NACA Airfoils with Eulerian Fluid Simulator</h1>
+		</div>
+	</header>
+	
+	<div id="wrapper">
+	
+		<main>
+			<div id="content">
+				<div class="inside">
+					<h1>Airfoil Generator Code Implementation</h1>
+
+					<p style="text-indent:18px;">
+                        The first section of the project is the airfoil generation. The simulator prompts the user to input parameters for the desired airfoil based on the digits defined in the NACA title code: Max Camber, Max Camber Position, and Thickness (all as percentage of the chord length). The airfoil is then formed from the camber line and the thickness distribution perpendicular to that line. Following the NACA equations, the line is divided into sections on both sides of the maximum camber position and the gradient of the camber line is incorporated into the airfoil envelope.
+                    </p>
+
+                    <p style="text-indent:18px;">
+                        According to the NACA standardization, the equations for the camber and gradient take the form:
+                    </p>
+                    <figure>
+						<img src="/Users/thomas_reilly/Documents/GitHub/NACAzation/web/Images/camberGradientEQs.png" alt="Camber and Gradient Equations">
+						<figcaption> Equation 1: Camber and Gradient Equations [2]. http://airfoiltools.com/airfoil/naca4digit </figcaption>
+					</figure>
+                    <p>
+                        where M is the maximum camber, P is the position of the maximum camber, and (x,y) are the coordinates of the geometry envelope. Similarly, NACA specifies the thickness distribution of the airfoil according to the equation:
+                    </p>
+                    <figure>
+						<img src="/Users/thomas_reilly/Documents/GitHub/NACAzation/web/Images/thicknessDistributionEQ.png" alt="Thickness Distribution Equation">
+						<figcaption> Equation 2: Thickness Distribution Equation [2]. http://airfoiltools.com/airfoil/naca4digit </figcaption>
+					</figure>
+                    <p>
+                        The closed trailing edge form is used, with the constants a0 to a4 (shown here for a 20% thickness) adjusted by a factor of T/0.2 depending on the thickness, T.
+                    </p>
+                    <p style="text-indent:18px;">
+                        Using these equations, the camber line position Yc, the camber gradient, and the thickness are calculated for a given position, x, according to the equations:
+                    </p>                    
+                    <figure>
+						<img src="/Users/thomas_reilly/Documents/GitHub/NACAzation/web/Images/upperLowerEQ.png" alt="Upper and Lower Line Equations">
+						<figcaption> Equation 3: Upper and Lower Boundary Equations [2]. http://airfoiltools.com/airfoil/naca4digit </figcaption>
+					</figure>
+                    <p>
+                        where X is an array of points with tighter spacing near the leading edge to account for the larger amount of curvature at those points. The points are grouped using a cosine spacing with uniform increments of beta according to the equation below: 
+                    </p>
+                    <figure>
+						<img src="/Users/thomas_reilly/Documents/GitHub/NACAzation/web/Images/cosSpacingEQ.png" alt="Cosine Spacing Equation">
+						<figcaption> Equation 4: Cosine Spacing Equation [2]. http://airfoiltools.com/airfoil/naca4digit </figcaption>
+					</figure>
+                    <p style="text-indent:18px;">
+                        The final product results in an array of x and y coordinates outlining an airfoil envelope that follows the standard NACA definitions, as shown in Figure 2 below:
+                    </p>
+                    <figure>
+						<img src="/Users/thomas_reilly/Documents/GitHub/NACAzation/web/Images/sampleFoilPlot.png" alt="Cosine Spacing Equation">
+						<figcaption> Figure 2: Example plot of airfoil envelope. </figcaption>
+					</figure>
+
+				</div>
+			</div>
+		</main>
+		
+		<nav id="nav">
+			<div class="inside">
+				<ul>
+				<li><a href="FinalReport.html">Project Motivation</a></li>
+				</ul>
+				<h3>Airfoil Generator</h3>
+				<ul>
+					<li><a href="AGnacaseries.html">NACA Four-Digit Series</a></li>
+					<li><a href="AGimplementation.html">Code Implementation</a></li>
+
+				</ul>
+				<h3>Computational Fluid Dynamics</h3>
+				<ul>
+					<li><a href="SIMtheory.html">Eulerian Fluid Simulator</a></li>
+					<li><a href="SIMimplementation.html">Code Implementation</a></li>
+				</ul>
+                <h3>Final Product</h3>
+				<ul>
+					<li><a href="NACAzation_javascript.html">Interactive Simulation</a></li>
+					<li><a href="FPresults.html">Results</a></li>
+                    <li><a href="FPfuturework.html">Future Work</a></li>
+                    <li><a href="FPreferences.html">References</a></li>
+				</ul>
+			</div>
+		</nav>
+	
+	</div>
+	
+	<footer id="footer">
+		<div class="inside">
+			<p>Simone Cimolato and Thomas Reilly</p>
+            <p>ASTE-404: Computational Programming and Numerical Methods</p>
+            <p>USC Fall 2023</p>
+		</div>
+	</footer>
+
+
+
+</body>
+
+</html>

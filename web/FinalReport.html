@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>NACAzation</title>
+<style type="text/css">
+	body {
+		margin:0;
+		padding:0;
+		font-family: Sans-Serif;
+		line-height: 1.5em;
+	}
+	#header {
+		background: #999999;
+		height: 100px;
+	}
+	#header h1 {
+		margin: 0;
+		padding-top: 15px;
+	}
+    #header h3 {
+        padding-bottom: 5px;
+    }
+	main {
+		padding-bottom: 10010px;
+		margin-bottom: -10000px;
+		float: left;
+		width: 100%;
+	}
+	#nav {
+		padding-bottom: 10010px;
+		margin-bottom: -10000px;
+        padding-left: 10px;
+		padding-top: 10px;
+		float: left;
+		width: 230px;
+		margin-left: -100%;
+		background: #aaaaaa;
+	}
+	#footer {
+		clear: left;
+		width: 100%;
+		background: #999999;
+		text-align: center;
+		padding: 4px 0;
+	}
+	#wrapper {
+		overflow: hidden;
+	}			
+	#content {
+		margin-left: 230px; /* Same as 'nav' width */
+	}
+	.inside {
+		margin: 15px;
+		margin-top: 0;
+		padding-left: 10px;
+	}
+	p {
+		color: #303030;
+	}
+	nav ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+	nav ul a {
+		color: darkblue;
+		text-decoration: none;
+	}
+	img {
+		width:  400px;
+    	height: 200px;
+    	object-fit: scale-down;
+		vertical-align: center;
+	}
+	figcaption {
+		font-style: italic;
+		font-size: 12px;
+	}
+</style>
+</head>
+
+<body>		
+
+	<header id="header">
+		<div class="inside">
+			<h1>NACAzation: Analysis of NACA Airfoils with Eulerian Fluid Simulator</h1>
+		</div>
+	</header>
+	
+	<div id="wrapper">
+	
+		<main>
+			<div id="content">
+				<div class="inside">
+					<h1>Project Motivation</h1>
+
+					<p style="text-indent:18px;">
+					The goal of this project is to develop from scratch a computational fluid dynamics (CFD) algorithm capable of simulating the flowfield around an airfoil. CFD is an important branch of fluid mechanics that employs numerical analysis to solve problems involving fluid flow, and the problems on which it focuses are often computationally expensive and time-consuming. Because CFD is applied to a wide range of engineering studies and represents a field of high complexity, the intent of this project is to create a better understanding of this important tool by designing, building, and testing a simple and accessible CFD algorithm. The algorithm will employ an Eulerian Fluid Simulator and will be tested on various NACA airfoils, which are standardized airfoil shapes for aircraft wings developed by the National Advisory Committee for Aeronautics (NACA). Each NACA airfoil shape is determined via the digits in the airfoil's name, e.g. “NACA6412” or “NACA0006.” The parameters in the coded title make use of predefined equations to generate a precise cross-section and ultimately drive its aerodynamic properties. This project consists of two main sections: (1) a NACA airfoil geometry is generated from user input according to the defining equations and (2) a CFD algorithm that simulates flow around the given airfoil and quantifies its aerodynamic properties.
+                    </p>
+
+                    <figure>
+						<img src="/Users/thomas_reilly/Documents/GitHub/NACAzation/web/Images/planeWing.jpg" alt="Plane Wing Airfoil">
+						<figcaption> Figure 1: Plane wing showing airfoil cross-section [1]. https://www.lesics.com/how-do-airplanes-fly.html</figcaption>
+					</figure>
+
+                    <p style="text-indent:18px;">
+                    	General Project Motivation
+                    </p>
+
+					<h2>Airfoil Generator</h2>
+
+					<p style="text-indent:18px;">
+                    Write overview of Airfoil Generator
+                    </p>
+					
+
+					<h2>Computational Fluid Dynamics</h2>
+
+					<p style="text-indent:18px;">
+                    Write overview of CFD code here
+                    </p>
+
+				</div>
+			</div>
+		</main>
+		
+		<nav id="nav">
+			<div class="inside">
+				<ul>
+				<li><a href="FinalReport.html">Project Motivation</a></li>
+				</ul>
+				<h3>Airfoil Generator</h3>
+				<ul>
+					<li><a href="AGnacaseries.html">NACA Four-Digit Series</a></li>
+					<li><a href="AGimplementation.html">Code Implementation</a></li>
+
+				</ul>
+				<h3>Computational Fluid Dynamics</h3>
+				<ul>
+					<li><a href="SIMtheory.html">Eulerian Fluid Simulator</a></li>
+					<li><a href="SIMimplementation.html">Code Implementation</a></li>
+				</ul>
+                <h3>Final Product</h3>
+				<ul>
+					<li><a href="NACAzation_javascript.html">Interactive Simulation</a></li>
+					<li><a href="FPresults.html">Results</a></li>
+                    <li><a href="FPfuturework.html">Future Work</a></li>
+                    <li><a href="FPreferences.html">References</a></li>
+				</ul>
+			</div>
+		</nav>
+	
+	</div>
+	
+	<footer id="footer">
+		<div class="inside">
+			<p>Simone Cimolato and Thomas Reilly</p>
+            <p>ASTE-404: Computational Programming and Numerical Methods</p>
+            <p>USC Fall 2023</p>
+		</div>
+	</footer>
+
+
+
+</body>
+
+</html>
