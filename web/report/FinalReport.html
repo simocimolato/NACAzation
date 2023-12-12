@@ -55,6 +55,9 @@
 		color: rgb(190, 150, 49);
 		text-decoration: none;
 	}
+	a {
+		text-decoration: none;
+	}
 	a:hover{
 		text-decoration: underline;
 	}
@@ -86,12 +89,6 @@
 		margin: 0;
 		padding: 0;
 	}
-	img {
-		width:  400px;
-    	height: 200px;
-    	object-fit: scale-down;
-		vertical-align: center;
-	}
 	figcaption {
 		font-style: italic;
 		font-size: 12px;
@@ -113,13 +110,18 @@
 				<div class="inside">
 					<h1>Project Motivation</h1>
 
-					<p style="text-indent:18px;">
-						The goal of this project is to develop from scratch a computational fluid dynamics (CFD) algorithm capable of simulating the flowfield around an airfoil. CFD is an important branch of fluid mechanics that employs numerical analysis to solve problems involving fluid flow, and the problems on which it focuses are often computationally expensive and time-consuming. Because CFD is applied to a wide range of engineering studies and represents a field of high complexity, the intent of this project is to create a better understanding of this important tool by designing, building, and testing a simple and accessible CFD algorithm. The algorithm will employ an Eulerian Fluid Simulator and will be tested on various NACA airfoils, which are standardized airfoil shapes for aircraft wings developed by the National Advisory Committee for Aeronautics (NACA). Each NACA airfoil shape is determined via the digits in the airfoil's name, e.g. “NACA6412” or “NACA0006.” The parameters in the coded title make use of predefined equations to generate a precise cross-section and ultimately drive its aerodynamic properties. This project consists of two main sections: (1) a NACA airfoil geometry is generated from user input according to the defining equations and (2) a CFD algorithm that simulates flow around the given airfoil and quantifies its aerodynamic properties.
+					<p style="text-indent:18px; text-align: justify; text-justify: inter-word;">
+						The goal of this project is to develop from scratch a computational fluid dynamics (CFD) algorithm capable of simulating the flowfield around an airfoil. CFD is an important branch of fluid mechanics that employs numerical analysis to solve problems involving fluid flow, and the problems on which it focuses are often computationally expensive and time-consuming. Because CFD is applied to a wide range of engineering studies and represents a field of high complexity, the intent of this project is to create a better understanding of this important tool by designing, building, and testing a simple and accessible CFD algorithm. The algorithm will employ an Eulerian Fluid Simulator and will be tested on various NACA airfoils, which are standardized airfoil shapes for aircraft wings developed by the <a href="http://airfoiltools.com/search/index?m%5Bgrp%5D=naca4d&m%5Bsort%5D=1" target="_blank">National Advisory Committee for Aeronautics (NACA).</a> Each NACA airfoil shape is determined via the digits in the airfoil's name, e.g. “NACA6412” or “NACA0006.” The parameters in the coded title make use of predefined equations to generate a precise cross-section and ultimately drive its aerodynamic properties. This project consists of two main sections: (1) a NACA airfoil geometry is generated from user input according to the defining equations and (2) a CFD algorithm that simulates flow around the given airfoil and quantifies its aerodynamic properties.
                     </p>
 
-                    <figure>
-						<img src="Images/planeWing.jpg" alt="Plane Wing Airfoil">
-						<figcaption> Figure 1: Plane wing showing airfoil cross-section [1]. https://www.lesics.com/how-do-airplanes-fly.html</figcaption>
+					<figure>
+						<iframe width="533" style="float: right;" height="300" src="https://www.youtube.com/embed/Png0fnG0b_U?si=EW7Sj7Aw1lm-MvW5&amp;controls=0&amp;start=29&mute=1" title="wind tunnel" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+						<figcaption><a href=" https://www.youtube.com/watch?v=Png0fnG0b_U">Figure 2: miniature wind tunnel.</a></figcaption>
+					</figure>
+
+					<figure>
+						<img style="height: 300px; width: auto;" src="Images/planeWing.jpg" alt="Plane Wing Airfoil">
+						<figcaption><a href="https://www.lesics.com/how-do-airplanes-fly.html">Figure 1: Plane wing showing airfoil cross-section [1].</a></figcaption>
 					</figure>
 
                     <p style="text-indent:18px;">
