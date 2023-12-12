@@ -109,11 +109,50 @@
 		<main>
 			<div id="content">
 				<div class="inside">
-					<h1>NACA Four-Digit Series</h1>
+					<h1>NACA Airfoils</h1>
 
 					<p style="text-indent:18px;">
-                        
-                    </p>
+						An airfoil is a streamlined body that is capable of generating significantly more lift than drag [2]. When solid bodies move through a fluid, the body displaces and deflects the fluid away from its original path. This interaction produces an aerodynamic force on the body in the direction opposite that of the deflection of the fluid. The aerodynamic force consists of two components: lift, which acts in the direction perpendicular to the general flow velocity, and drag, which acts in the direction parallel to the general flow velocity. Airfoils produce lift primarily as a result of their angle of attack, but cambered airfoils are capable of producing lift at a zero degree angle of attack. As shown in Figure 3, examples of airfoils are prevalent throughout nature and technology alike, including wings, fins, sails, and propeller blades.
+					</p>
+					<figure>
+						<img src="Images/generalAirfoils.png" alt="General Airfoils">
+						<figcaption> Figure 3: Examples of airfoils found in nature and used in human-made vehicles.</figcaption>
+					</figure>
+					<p style="text-indent:18px;">
+						Because airfoils come in a wide variety of shapes and sizes, their aerodynamic efficiencies (quantified by the lift-to-drag ratio) can differ drastically. Furthermore, different flight objectives and flow regimes often require different aerodynamic capabilities. Optimizing airfoil design to maximize the lift-to-drag ratio for a given application thus represents one of the most important and challenging factors of aerodynamic design. In response to these challenges, the National Advisory Committee for Aeronautics (NACA) worked to standardize airfoil design across the aeronautics industry by developing a numbered system for constructing airfoil shapes to be used in aircraft wings. According to the National Aeronautics and Space Administration (NASA):
+					</p>
+					<div style="padding: 2% 4%; margin-left: 10%; margin-right: 10%; background-color: lightgrey; font-style: italic; border: 2px solid black; border-radius: 4px;">
+						<p>
+							“During the late 1920s and into the 1930s, the NACA developed a series of thoroughly tested airfoils and devised a numerical designation for each airfoil — a four digit number that represented the airfoil section's critical geometric properties. By 1929, Langley had developed this system to the point where the numbering system was complemented by an airfoil cross-section, and the complete catalog of 78 airfoils appeared in the NACA's annual report for 1933. Engineers could quickly see the peculiarities of each airfoil shape, and the numerical designator (“NACA 2415,” for instance) specified camber lines, maximum thickness, and special nose features. These figures and shapes transmitted the sort of information to engineers that allowed them to select specific airfoils for desired performance characteristics of specific aircraft.” [3]
+						</p>
+						<figure style="vertical-align: center;">
+							<img src="Images/NACAoriginalFoils.png" alt="NACA Original Airfoils"style="vertical-align: center;">
+							<figcaption style="vertical-align: center;"> Figure 4: Early designs for the NACA series airfoils [3].</figcaption>
+						</figure>
+					</div>
+
+					<br></br>
+					<h1>The NACA Four-Digit Series</h1>
+					<p style="text-indent:18px;">
+						While multiple classes of NACA airfoils exist today, the NACA Four-Digit Series remains one of the most popular and widely used systems for designing airfoil shapes. The airfoil profile is identified by the leading term “NACA” and defined by a four-digit numerical designator, where [4]:
+					</p>
+					<div style="padding: 1%; margin-left: 15%; margin-right: 15%; background-color: lightgrey; border: 2px solid black; border-radius: 4px;">
+						<ol>
+							<li>First digit describes the maximum camber as a percentage of the chord.</li>
+							<li>Second digit describes the position of the maximum camber from the leading edge in tenths of the chord.</li>
+							<li>Third and fourth digits describe the maximum thickness of the airfoil as a percentage of the chord.</li>
+						</ol>
+					</div>
+					<p>
+						For example, the NACA 2412 airfoil has a maximum camber of 2% located 40% (0.4 chords) from the leading edge and a maximum thickness of 12% of the chord as shown in Figure 5 [5]. Symmetrical NACA airfoils have a leading 00 in the numerical designator indicating that no camber is present. For both symmetrical four-digit NACA foils and cambered four-digit NACA foils, predefined equations govern the position of the boundary envelope as a function of the thickness of the airfoil. For the case of cambered four-digit NACA foils (designators that do not begin with 00), an additional factor is introduced for the line of mean camber bent. 
+					</p>
+					<figure style="vertical-align: center;">
+						<img src="Images/NACA2412.png" alt="NACA Original Airfoils"style="vertical-align: center;">
+						<figcaption style="vertical-align: center;"> Figure 5: "Plot of a NACA 2412 foil. The camber line is shown in red, and the thickness - or the symmetrical airfoil 0012 - is shown in purple" [5].</figcaption>
+					</figure>
+					<p style="text-indent:18px;">
+						Thus, by specifying only four values, the shape of any NACA four-digit series airfoil can be generated from a standardized formula. This construction is the focus of the Code Implementation section.
+					</p>
 				</div>
 			</div>
 		</main>

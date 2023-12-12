@@ -132,7 +132,7 @@ Simone Cimolato, Thomas Reilly
 			<input type="radio" id="foil" onclick="updateFoil()" style="display: none;">
 			<label for="foil" id="foilLabel">FLY!</label>
 
-			<div id = "NACA">NACA........</div>
+			<div id = "NACA">NACA ........</div>
 
 			<div id = "CX">CX: ..............</div>
 
@@ -686,7 +686,7 @@ Simone Cimolato, Thomas Reilly
 
 			var NACAstring = camberStr.concat(camberPosStr.concat(thicknessStr));
 
-			document.getElementById("NACA").innerHTML = "NACA" + NACAstring;
+			document.getElementById("NACA").innerHTML = "NACA " + NACAstring;
 
 			var x = linspace(0, Math.PI, 100);
 			x = x.map(x => (1 - Math.cos(x)) / 2);
