@@ -134,7 +134,7 @@ Simone Cimolato, Thomas Reilly
 
 			<div id = "NACA">NACA ........</div>
 
-			<div id = "CX">CX: ..............</div>
+			<!--<div id = "CX">CX: ..............</div>-->
 
 			<div id = "backHome"><a href="../report/FinalReport.html">Back to Home</a></div>
 		</div>
@@ -322,7 +322,7 @@ Simone Cimolato, Thomas Reilly
 				scene.cx.push(Math.abs(2 * this.force / (this.density * scene.inVel * scene.inVel * 2 * scene.obstacleRadius))); // this shit is wrong, should be 100x less
 				if(scene.cx.length >= scene.interval){
 					// average of the last scene.interval elements
-					document.getElementById("CX").innerHTML = "CX: " + mean(scene.cx).toFixed(4);
+					//document.getElementById("CX").innerHTML = "CX: " + mean(scene.cx).toFixed(4);
 					scene.cx = [];
 				}
 			}
