@@ -81,8 +81,6 @@
 		padding: 0;
 	}
 	img {
-		width:  300px;
-    	height: 200px;
     	object-fit: scale-down;
 		vertical-align: center;
 	}
@@ -107,10 +105,25 @@
 				<div class="inside">
 					<h1>Eulerian Fluid Simulator</h1>
 
-					<p style="text-indent:18px;">
-                    Content Here
-                    </p>
-
+					<p style="text-indent:18px; text-align: justify; text-justify: inter-word;">
+						Eulerian Fluid Simulators are a type of computational fluid dynamics (CFD) simulation that models fluid behavior by dividing the fluid into a grid of cells. This grid is used to represent the fluid's velocity, pressure, and other properties at each point in space and time. The simulation then solves a set of equations that describe how these properties change over time, allowing the simulation to predict the fluid's behavior under different conditions.
+					
+						<br/><br/><br/>
+						To simulate the fluid we use this algorithm:
+						<ol>
+							<li>Initialize the velocity field on a grid to represent the fluid's movement in each cell.</li>
+							<li>Carefully perform a projection step (taking walls into account) to ensure incompressibility by setting the velocity divergence to 0.</li>
+								<div style="text-align: center;"><img style="width: 50%; height: auto" src="../Images/projection.png"></div>
+							<li>Move the velocity field through advection, simulating the transport of fluid properties.</li>
+								<div style="text-align: center;"><img style="width: 25%; height: auto" src="../Images/advection.png"></div>
+							<li>Calculate the pressure in each cell using overrelaxation.</li>
+								<div style="text-align: center;"><img style="width: 25%; height: auto" src="../Images/pressure.png"></div>
+							<li>Advect the <i>compressible</i> dye field to allow for correct visualization.</li>
+							<li>Iteratively update the velocity and dye fields to simulate the fluid's behavior over time, allowing for the visualization and analysis.</li>	
+						</ol>
+						<br/>
+						The key insight here is that the fluid is simulated as <b>incompressible</b>, so the divergence of the velocity field is 0 in each cell, but the dye field, used for visualization purposes, is compressible, and we are plotting its density.
+					</p>
 				</div>
 			</div>
 		</main>
