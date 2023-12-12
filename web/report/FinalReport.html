@@ -23,15 +23,6 @@
 		justify-items: auto;
 		width: 80%;
 	}
-    #header h3 {
-        padding-bottom: 5px;
-    }
-	main {
-		padding-bottom: 10010px;
-		margin-bottom: -10000px;
-		float: left;
-		width: 100%;
-	}
 	#nav {
 		padding-bottom: 10010px;
 		margin-bottom: -10000px;
@@ -50,6 +41,28 @@
 		color: white;
 		text-align: center;
 		padding: 4px 0;
+	}
+	p:not(#footerWriting) {
+		color: #303030;
+	}
+	#footerWriting{
+		color: white;
+	}
+    #header h3 {
+        padding-bottom: 5px;
+    }
+	nav ul a {
+		color: rgb(190, 150, 49);
+		text-decoration: none;
+	}
+	a:hover{
+		text-decoration: underline;
+	}
+	main {
+		padding-bottom: 10010px;
+		margin-bottom: -10000px;
+		float: left;
+		width: 100%;
 	}
 	#wrapper {
 		overflow: hidden;
@@ -73,13 +86,6 @@
 		margin: 0;
 		padding: 0;
 	}
-	nav ul a {
-		color: rgb(190, 150, 49);
-		text-decoration: none;
-	}
-	a:hover{
-		text-decoration: underline;
-	}
 	img {
 		width:  400px;
     	height: 200px;
@@ -97,7 +103,7 @@
 	<header id="header">
 		<div class="inside">
 			<h1>NACAzation: Analysis of NACA Airfoils with Eulerian Fluid Simulator</h1>
-			<img style="padding-left: 95%; height: auto; width: 4%; " src="Images/usc.png">
+			<img style="padding-left: 95%; height: auto; width: 4%; position: absolute; right: 20px; top: 6px;" src="Images/usc.png">
 		</div>
 	</header>
 	

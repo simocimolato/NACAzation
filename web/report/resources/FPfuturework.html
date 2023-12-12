@@ -11,21 +11,17 @@
 		line-height: 1.5em;
 	}
 	#header {
-		background: #999999;
+		background: rgb(140, 26, 17, 1);
+		color: white;
 		height: 100px;
 	}
 	#header h1 {
 		margin: 0;
-		padding-top: 15px;
-	}
-    #header h3 {
-        padding-bottom: 5px;
-    }
-	main {
-		padding-bottom: 10010px;
-		margin-bottom: -10000px;
-		float: left;
-		width: 100%;
+		padding-top: 40px;
+		display: flex;
+		align-items: center;
+		justify-items: auto;
+		width: 80%;
 	}
 	#nav {
 		padding-bottom: 10010px;
@@ -35,14 +31,38 @@
 		float: left;
 		width: 230px;
 		margin-left: -100%;
-		background: #aaaaaa;
+		background: rgb(140, 26, 17, 0.85);
+		color: white;
 	}
 	#footer {
 		clear: left;
 		width: 100%;
-		background: #999999;
+		background: rgb(140, 26, 17, 0.75);
+		color: white;
 		text-align: center;
 		padding: 4px 0;
+	}
+	p:not(#footerWriting) {
+		color: #303030;
+	}
+	#footerWriting{
+		color: white;
+	}
+    #header h3 {
+        padding-bottom: 5px;
+    }
+	nav ul a {
+		color: rgb(190, 150, 49);
+		text-decoration: none;
+	}
+	a:hover{
+		text-decoration: underline;
+	}
+	main {
+		padding-bottom: 10010px;
+		margin-bottom: -10000px;
+		float: left;
+		width: 100%;
 	}
 	#wrapper {
 		overflow: hidden;
@@ -55,17 +75,10 @@
 		margin-top: 0;
 		padding-left: 10px;
 	}
-	p {
-		color: #303030;
-	}
 	nav ul {
 		list-style-type: none;
 		margin: 0;
 		padding: 0;
-	}
-	nav ul a {
-		color: darkblue;
-		text-decoration: none;
 	}
 	img {
 		width:  300px;
@@ -84,6 +97,7 @@
 	<header id="header">
 		<div class="inside">
 			<h1>NACAzation: Analysis of NACA Airfoils with Eulerian Fluid Simulator</h1>
+			<img style="padding-left: 95%; height: auto; width: 4%; position: absolute; right: 20px; top: 6px;" src="../Images/usc.png">
 		</div>
 	</header>
 	
@@ -130,9 +144,9 @@
 	
 	<footer id="footer">
 		<div class="inside">
-			<p>Simone Cimolato and Thomas Reilly</p>
-            <p>ASTE-404: Computational Programming and Numerical Methods</p>
-            <p>USC Fall 2023</p>
+			<p id="footerWriting">Simone Cimolato and Thomas Reilly</p>
+            <p id="footerWriting">ASTE-404: Computational Programming and Numerical Methods</p>
+            <p id="footerWriting">USC Fall 2023</p>
 		</div>
 	</footer>
 </body>
