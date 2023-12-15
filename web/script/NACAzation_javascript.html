@@ -157,7 +157,7 @@ Simone Cimolato, Thomas Reilly
 		<input id="pause" name="super" onclick="scene.paused = !scene.paused; updatePauseButtonStyle();" checked>
 		<label for="pause">Pause</label>
 
-		<input id="step" name="super" onclick="scene.paused = false; simulate(); scene.paused = true; updateStepButtonStyle()">
+		<input id="step" name="super" onclick="scene.paused = false; simulate(); scene.paused = true;">
 		<label for="step">Step</label>
 	</div>
 
@@ -178,21 +178,8 @@ Simone Cimolato, Thomas Reilly
 						- carefully adding/subtracting d/4 from each velocity at each edge so that the new divergence will be 0
 						- velocities on walls/obstacles are set to be 0, the divergence is divided by the number of the remaining "free" velocities and subracted/added to them
 					- computing pressure in each cell using overrelaxation
-					- computing aerodynamic force by integrating pressure of the obstacle's surface, computing CL and CD
 				2 move the velocity and dye density fields (semi-lagrangian advection)
 				3 draw
-
-		TODO:
-			- implement airfoils
-			- input interface for airfoil generation
-			- slider for streamline spacing
-			- slider for angle of attack
-			- step button to turn on only while clicked 
-			- print on screen of drag/lift and CD/CL
-			- fix CD/CL computation
-			- more efficient way of looping through cells to integrate pressure over surface
-			- CD/CL updating frequency slider
-			- cleaning CSS and grouping functinos in javascript
 		*/
 
 		var canvas = document.getElementById("simulation");
@@ -225,9 +212,9 @@ Simone Cimolato, Thomas Reilly
 			dt: 1.0 / 60.0,
 			numIters: 50,
 			domainHeight: 1,
-			cx: [],
-			interval: 25,
-			xProportion: 0.02,
+			//cx: [],
+			//interval: 25,
+			xProportion: 0.03,
 			spacing: 10,
 			density: 1,
 			foilObstacle: false,
@@ -293,6 +280,7 @@ Simone Cimolato, Thomas Reilly
 					}
 				}
 
+				/*
 				// calculating the pressure
 				this.force = 0;
 				var avgP = mean(this.p);//0.5 * (this.maxP + this.minP);
@@ -324,7 +312,7 @@ Simone Cimolato, Thomas Reilly
 					// average of the last scene.interval elements
 					//document.getElementById("CX").innerHTML = "CX: " + mean(scene.cx).toFixed(4);
 					scene.cx = [];
-				}
+				}*/
 			}
 			
 			setBoundaryCond() {
@@ -509,8 +497,8 @@ Simone Cimolato, Thomas Reilly
 			for (let i = 1; i < sizeX - 1; i++) {
 				for (let j = 1; j < sizeY - 1; j++) {
 					// Calculate partial derivatives
-					const du_dy = (u[(i - 1) * sizeY + j +1] - u[(i - 1) * sizeY + j -1]) / 2;
-					const dv_dx = (v[(i - 1) * sizeY + j +1] - v[(i - 1) * sizeY + j -1]) / 2;
+					var du_dy = (u[(i - 1) * sizeY + j +1] - u[(i - 1) * sizeY + j -1]) / 2;
+					var dv_dx = (v[(i - 1) * sizeY + j +1] - v[(i - 1) * sizeY + j -1]) / 2;
 
 					// Calculate curl
 					f.curl[(i - 1) * sizeY + j] = dv_dx - du_dy;
@@ -624,30 +612,6 @@ Simone Cimolato, Thomas Reilly
 				label.style.color = '#000';
 				label.textContent = "Pause";
 			}
-		}
-
-		function updateStepButtonStyle() {
-			/*var stepButton = document.getElementById('step');
-			button.addEventListener('mousedown', function(){
-				var label = button.nextElementSibling;
-				label.style.backgroundColor = '#3498db';
-				label.style.color = '#fff';
-			});
-
-			button.addEventListener('mouseup', function(){
-				var label = button.nextElementSibling;
-				label.style.backgroundColor = '#fff';
-				label.style.color = '#000';
-			});
-			stepButton.addEventListener('mousedown', function() {
-				stepButton.classList.add('active');
-				});
-
-				stepButton.addEventListener('mouseup', function() {
-				stepButton.classList.remove('active');
-				});*/
-
-				// temporary function to change the background only while being clicked
 		}
 
         function updateSlider() {
@@ -895,16 +859,6 @@ Simone Cimolato, Thomas Reilly
 				f.minP = minP;
 				f.maxP = maxP;
 			}
-			
-			var minP = f.p[0];
-				var maxP = f.p[0];
-				for (var i = 0; i < f.numCells; i++) {
-					minP = Math.min(minP, f.p[i]);
-					maxP = Math.max(maxP, f.p[i]);
-				}
-				f.minP = minP;
-				f.maxP = maxP;
-
 
 			id = c.getImageData(0,0, canvas.width, canvas.height)
 

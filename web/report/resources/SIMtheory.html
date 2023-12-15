@@ -111,13 +111,13 @@
 						<br/><br/><br/>
 						To simulate the fluid we use this algorithm:
 						<ol>
-							<li>Initialize the velocity field on a grid to represent the fluid's movement in each cell.</li>
-							<li>Carefully perform a projection step (taking walls into account) to ensure incompressibility by setting the velocity divergence to 0.</li>
+							<li>Initialize the velocity field on a staggered grid to represent the fluid's movement in each cell.</li>
+							<li>Carefully perform a projection step using Gauss-Seidel method over a number of iterations to solve the linear system of equations (taking walls into account) to ensure incompressibility by setting the velocity divergence to 0.</li>
 								<div style="text-align: center;"><img style="width: 50%; height: auto" src="../Images/projection.png"></div>
-							<li>Move the velocity field through advection, simulating the transport of fluid properties.</li>
-								<div style="text-align: center;"><img style="width: 25%; height: auto" src="../Images/advection.png"></div>
 							<li>Calculate the pressure in each cell using overrelaxation.</li>
 								<div style="text-align: center;"><img style="width: 25%; height: auto" src="../Images/pressure.png"></div>
+							<li>Propagate the velocity field through semi-Lagrangian advection, simulating the transport of fluid properties.</li>
+								<div style="text-align: center;"><img style="width: 25%; height: auto" src="../Images/advection.png"></div>
 							<li>Advect the <i>compressible</i> dye field to allow for correct visualization.</li>
 							<li>Iteratively update the velocity and dye fields to simulate the fluid's behavior over time, allowing for the visualization and analysis.</li>	
 						</ol>
